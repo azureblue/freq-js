@@ -113,24 +113,3 @@ function FFT(inputSize) {
         }
     }
 }
-
-function HanningWindow(N) {
-    this.w = n => 1 - (0.54 + 0.46 * Math.cos((2 * Math.PI * n) / (N - 1)));
-    this.apply = (src, dst) => {
-        for (let i = 0; i < N; i ++)
-            dst[i] = this.w(i) * src[i];
-    };
-}
-
-function GaussianWindow(N) {
-    const sigma = 0.5;
-    this.w = function(n) {
-        const ex = ((n - (N - 1) / 2) / (sigma * (N - 1) / 2));
-        return Math.exp(-0.5 * (ex * ex));
-    };
-
-    this.apply = (src, dst) => {
-        for (let i = 0; i < N; i ++)
-            dst[i] = this.w(i) * src[i];
-    };
-}

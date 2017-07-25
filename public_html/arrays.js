@@ -4,6 +4,3 @@ function copyElements(from, to) {
         to[i] = from[i];
 }
 
-function Transform() {
-
-}

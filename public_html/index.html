@@ -4,12 +4,17 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            * {border: 0px; width: 100%; height: 100%; margin: 0px;}
+            * {border: 0px; width: 100%; height: 100%; margin: 0px; position: absolute;}
+
         </style>
         <script src="arrays.js"></script>
+        <script src="music.js"></script>
+        <script src="window.js"></script>
         <script src="fft.js"></script>
         <script src="graph.js"></script>
         <script src="geom.js"></script>
+        <script src="//cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.4/radial/gauge.min.js"></script>
+
         <script>
             const params = createParamMap();
             const audioContext = new AudioContext();
@@ -27,11 +32,15 @@
 
             let currentMag = 0;
             const soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
-            const hw = new GaussianWindow(sampleSize);
+            const hw = new GaussianWindow(sampleSize, 0.5);
             console.log("sample rate: " + sampleRate);
             let canvas;
             let ctx;
-            let gr, fftGr;
+            let waveGraph, fftGraph, logFftGraph;
+
+            function binToFreq(i) {
+                return i * sampleRate / sampleSize;
+            }
 
             function createParamMap() {
                 var map = {};
@@ -48,8 +57,10 @@
                 window.onresize = updateCanvasSize;
                 updateCanvasSize();
                 ctx = canvas.getContext("2d");
-                gr = new Graph(canvas, new Rect(10, 50, 700, 350), new GraphScale(0, sampleSize, 1024), new GraphScale(-1, 1, 0.2));
-                fftGr = new Graph(canvas, new Rect(10, 450, 700, 350), new GraphScale(0, 2000, 200), new GraphScale(-200, 0, 50));
+                waveGraph = new Graph(canvas, new Rect(0, 0, 500, 250), new GraphScale(0, sampleSize, 1024), new GraphScale(-1, 1, 0.2));
+                fftGraph = new Graph(canvas, new Rect(0, 260, 500, 250), new GraphScale(0, 2000, 200), new GraphScale(0, 2, 0.2));
+                logFftGraph = new Graph(canvas, new Rect(520, 260, 500, 250), new GraphScale(0, 2000, 200), new GraphScale(-130, 0, 10));
+                noteIdnicator = new NoteIndicator(canvas, new Rect(520, 0, 500, 250));
             }
 
             function updateCanvasSize() {
@@ -65,8 +76,8 @@
 
             function handleStream(stream) {
                 const sc = audioContext.createMediaStreamSource(stream);
-//                var on = audioContext.createOscillator();
-//                on.frequency.value = 900;
+                var on = audioContext.createOscillator();
+                on.frequency.value = 440;
 
                 soundProcessor.onaudioprocess = function(apEvent) {
                     apEvent.inputBuffer.copyFromChannel(wave, 0);
@@ -81,26 +92,66 @@
 
 
                 soundProcessor.connect(audioContext.destination);
-//                on.start();
+                on.start();
             }
 
-            const logMag = new Float32Array(sampleSize);
-            var windowSum = 0;
-            for (let i = 0; i < sampleSize; i++)
-                windowSum += hw.w(i);
-            windowSum /= 2;
+            const mag = new Float32Array(sampleSize / 2);
+            const logMag = new Float32Array(sampleSize / 2);
+            const smoothMag = new Float32Array(sampleSize / 2);
+            const movAvg = new Float32Array(sampleSize / 2);
 
+            let windowSum = hw.sum / 2;
+            let lastFoundNoteRes;
+
+            const ma = new MovingAverage(1);
+            const mt = new ComparatorTransform(0);
+            const peekFinder = new PeekFinder();
+            const peekInterpolator = new QuadraticPeekInterpolator();
+            const notes = [];
+            for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.note(1))
+                notes.push(note);
+            const noteFinder = new NoteFinder(notes);
             function redraw2() {
                 const w = canvas.width;
                 const h = canvas.height;
                 ctx.clearRect(0, 0, w, h);
-                gr.drawScales();
-                gr.plotData(wavexs, wave);
-                fftGr.drawScales();
-                for (let i = 0; i < sampleSize; i++) {
-                    logMag[i] = 20*Math.log10((fftMagnitude[0][i] + fftMagnitude[1][i]) / 2 / windowSum);
+                waveGraph.drawScales();
+                waveGraph.plotData(wavexs, wave);
+                fftGraph.drawScales();
+                logFftGraph.drawScales();
+
+                for (let i = 0; i < sampleSize / 2; i++) {
+                    mag[i] = (fftMagnitude[0][i] + fftMagnitude[1][i]) / 2;
+                    logMag[i] = 20*Math.log10(mag[i] / windowSum);
                 }
-                fftGr.plotData(wavefftxs, logMag);
+                logFftGraph.plotData(wavefftxs, logMag);
+                ma.spread = 1;
+                ma.apply(mag, smoothMag);
+                //fftGr.plotData(wavefftxs, smoothMag);
+                smoothMag.forEach((v, i) => smoothMag[i] = Math.sqrt(v * 2) / 4);
+                ma.spread = sampleSize / 64;
+                ma.apply(smoothMag, movAvg);
+                movAvg.forEach((v, i) => movAvg[i] = v + 0.005);
+                fftGraph.plotData(wavefftxs, movAvg);
+                mt.apply(smoothMag, movAvg, smoothMag);
+                fftGraph.plotData(wavefftxs, smoothMag);
+                peeks = [];
+                peekFinder.forEachPeek(smoothMag, peek => {
+                        if (smoothMag[peek] > 0) {
+                            let ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
+                            let peekFreq = binToFreq(peek + ip);
+                            fftGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(2));
+                            peeks.push(peekFreq);
+                        }
+                    }
+                );
+                let res = noteFinder.findNote(peeks);
+                if (!res.note)
+                    res = lastFoundNoteRes;
+                if (res) {
+                    lastFoundNoteRes = res;
+                    noteIdnicator.drawNote(res.note.name, res.note.frequency, res.avgCentDiff)
+                }
             }
 
             function redraw() {
@@ -125,7 +176,7 @@
                 ctx.moveTo(-1, offset);
                 for (var i = 0, pos = 0; i < fftSize && pos <= w; i++, pos += spread)
                     ctx.lineTo(pos, 20 * Math.log10((fftMagnitude[0][i] + fftMagnitude[1][i]) / 2)  * scale + offset);
-//                    ctx.lineTo(pos, (fftMagnitude[i] / sqrtN *2) * scale + offset);
+
                 ctx.stroke();
             }
 
@@ -133,5 +184,6 @@
     </head>
     <body onload="initCanvas();start();">
         <canvas id="canvas"></canvas>
+        <canvas id="noteGauge"></canvas>
     </body>
 </html>
