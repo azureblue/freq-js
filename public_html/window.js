@@ -33,7 +33,7 @@ class MovingAverage extends Transform {
         const spread = this.spread;
         const n = spread * 2 + 1;
 
-        let acc = 0;
+        var acc = 0;
         for (let i = 0; i < spread; i++)
             acc += src[i];
 
@@ -166,7 +166,7 @@ class NoteFinder {
         const len = peeks.length;
         peeks = peeks.sort();
         let bestNote = null;
-        let bestAvgCentDiff = null;
+        var bestAvgCentDiff = null;
         let bestScore = 0;
         this.notes.forEach((no, idx) => {
             const harmonicsPresent = [undefined, undefined, undefined, undefined, undefined, undefined];

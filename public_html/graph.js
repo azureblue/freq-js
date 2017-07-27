@@ -1,132 +1,142 @@
-function GraphScale(min, max, ticks) {
-    this.min = min;
-    this.max = max;
-    this.ticks = ticks;
-    this.length = max - min;
-    this.tickPrecission = 1;
-    this.generateTicks = function*() {
-        for (let tick = this.min; tick <= this.max; tick += this.ticks)
-            yield tick.toFixed(this.tickPrecission);
+function GraphBase(canvas) {
+    Object.defineProperty(this, 'width', {get: () => canvas.width});
+    Object.defineProperty(this, 'height', {get: () => canvas.height});
+    Object.defineProperty(this, 'ctx', {value: canvas.getContext('2d')});
+    this.updateSizeAndClean = function() {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        this.ctx.clearRect(0, 0, this.width, this.height);
     }
 }
 
-function NoteIndicator(canvas, rect) {
-    const ctx = canvas.getContext("2d");
+function GraphScale(min, max, tickInterval, tickPrecission) {
+    this.min = min;
+    this.max = max;
+    this.tickInterval = tickInterval;
+    this.tickPrecission = tickPrecission;
+    this.ticks = function*() {
+        for (let tick = this.min; tick <= this.max; tick += this.tickInterval)
+            yield tick.toFixed(this.tickPrecission);
+    };
+    this.normalizeValue = value => (value - this.min) / (this.max - this.min);
+}
 
-    this.drawNote = function(noteName, goalFrequency, centDiff) {
+function NoteIndicator(canvas) {
+    GraphBase.call(this, canvas);
+
+    this.drawNote = function(note, centDiff) {
+        const ctx = this.ctx;
+        this.updateSizeAndClean();
+        let noteName = note.name, goalFrequency = note.frequency;
         goalFrequency = goalFrequency.toFixed(2);
         centDiff = centDiff.toFixed(2);
+
         ctx.save();
         ctx.font = '20px sans-serif';
-        const textHeight = ctx.measureText("#").width + 2;
         ctx.tick = 1;
         ctx.strokeStyle = 'rgb(200, 200, 200)';
-        const absCentDiff = Math.abs(centDiff);
         ctx.fillStyle = 'rgb(200, 200, 200)';
 
-        ctx.translate(rect.x, rect.y);
-        ctx.fillText(noteName, rect.width / 2 - ctx.measureText(noteName).width / 2, textHeight);
+        const textHeight = ctx.measureText("#").width + 2;
+        const absCentDiff = Math.abs(centDiff);
+
+        ctx.fillText(noteName, this.width / 2 - ctx.measureText(noteName).width / 2, textHeight);
         ctx.font = '15px sans-serif';
-        ctx.fillText(goalFrequency, rect.width / 2 - ctx.measureText(goalFrequency).width / 2, textHeight * 2);
-        ctx.fillText(centDiff, rect.width / 2 - ctx.measureText(centDiff).width / 2, textHeight * 3);
-        ctx.fillRect(rect.width / 2, textHeight * 4, centDiff / 50 * rect.width / 2, textHeight * 8);
+        ctx.fillText(goalFrequency, this.width / 2 - ctx.measureText(goalFrequency).width / 2, textHeight * 2);
+        ctx.fillText(centDiff, this.width / 2 - ctx.measureText(centDiff).width / 2, textHeight * 3);
+        ctx.fillRect(this.width / 2, textHeight * 4, centDiff / 50 * this.width / 2, textHeight * 8);
         ctx.restore();
     }
 }
-function Graph(canvas, rect, xScale, yScale) {
-    const ctx = canvas.getContext("2d");
-    let textHeight, maxYLabelWidth, maxXLabelWidth, graphXPadding, graphYPadding, graphRect;
-    this.rect = rect;
+
+function Graph(canvas, xscale, yscale) {
+    GraphBase.call(this, canvas);
     this.font = '8px sans-serif';
     this.gridWidth = 1;
     this.gridStyle = 'rgb(200, 200, 200)';
-    this.labelMargin = 2;
+    this.plotStyle = 'rgb(100, 100, 100)';
+    this.labelMargin = 4;
+    this.margin = 2;
 
-    function xpos(xv) {
-        return Math.round((xv - xScale.min) / xScale.length  * graphRect.width);
-    }
-
-    function ypos(yv) {
-        return graphRect.height - Math.round((yv - yScale.min) / yScale.length  * graphRect.height);
-    }
-
-    let measureWidth = text => ctx.measureText(text).width;
-
-    this.updateSize = function() {
-        textHeight = ctx.measureText("#").width + 2;
-        maxYLabelWidth = Math.max(...[...yScale.generateTicks()].map(measureWidth));
-        maxXLabelWidth = Math.max(...[...xScale.generateTicks()].map(measureWidth));
-        graphXPadding = maxYLabelWidth + this.labelMargin * 2;
-        graphYPadding = textHeight + this.labelMargin * 2;
-        graphRect = new Rect(rect.x + graphXPadding, rect.y + this.labelMargin, rect.width - graphXPadding, rect.height - graphYPadding);
-    };
-
-    this.updateSize();
-
-    let setupCtx = () => {
+    const ctx = this.ctx;
+    const measureWidth = text => ctx.measureText(text).width;
+    //noinspection JSSuspiciousNameCombination
+    const textHeight = ctx.measureText("#").width;
+    const maxYLabelWidth = Math.max(...[...yscale.ticks()].map(measureWidth));
+    const maxXLabelWidth = Math.max(...[...xscale.ticks()].map(measureWidth));
+    const graphXPadding = maxYLabelWidth + this.labelMargin * 2;
+    const graphYPadding = textHeight + this.labelMargin * 2;
+    let graphRect = {x: 0, y: 0, width: 0, height: 0};
+    let xpos = xv => Math.round(xscale.normalizeValue(xv) * graphRect.width);
+    let ypos = yv => Math.round(graphRect.height - yscale.normalizeValue(yv) * graphRect.height);
+    let prepareCtx = () => {
         ctx.tick = this.gridWidth;
         ctx.strokeStyle = this.gridStyle;
         ctx.font = this.font;
     };
 
+    let updateGraphRect = () => {
+        graphRect.x = this.margin + graphXPadding;
+        graphRect.y = this.margin + this.labelMargin;
+        graphRect.width = this.width - graphXPadding - this.margin * 2;
+        graphRect.height = this.height - graphYPadding - this.margin * 2;
+    };
+
     this.drawScales = function() {
+        this.updateSizeAndClean();
+        updateGraphRect();
         ctx.save();
-        setupCtx();
+        prepareCtx();
         ctx.translate(graphRect.x, graphRect.y);
         ctx.beginPath();
-        for (tick of yScale.generateTicks()) {
+        for (tick of yscale.ticks()) {
             let labWidth = measureWidth(tick);
-            let pt = new Vec(0, ypos(tick));
-            ctx.moveTo(...pt);
-            ctx.lineTo(pt.x + graphRect.width, pt.y);
-            pt.move(new Vec(-labWidth - this.labelMargin , textHeight / 2));
-            ctx.fillText(tick, ...pt);
+            let y = ypos(tick);
+            ctx.moveTo(0, y);
+            ctx.lineTo(graphRect.width, y);
+            ctx.fillText(tick, -labWidth - this.labelMargin, y + textHeight / 2);
         }
-
-        for (tick of xScale.generateTicks()) {
+        for (tick of xscale.ticks()) {
             let labWidth = measureWidth(tick);
-            let pt = new Vec(xpos(tick), 0);
-            ctx.moveTo(...pt);
-            ctx.lineTo(pt.x, pt.y = graphRect.height);
-            pt.move(new Vec(-labWidth / 2 - this.labelMargin, textHeight + this.labelMargin));
-            ctx.fillText(tick, ...pt);
+            let x = xpos(tick);
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, graphRect.height);
+            ctx.fillText(tick, x -labWidth / 2, graphRect.height + textHeight + this.labelMargin);
         }
-
         ctx.stroke();
         ctx.restore();
     };
 
-    this.plotData = function(x, y) {
-        let len = x.length;
+    this.plotData = function(xs, ys) {
+        let len = xs.length;
         ctx.save();
-        setupCtx();
-        ctx.strokeStyle = 'rgb(100, 100, 100)';
+        prepareCtx();
+        ctx.strokeStyle = this.plotStyle;
         ctx.translate(graphRect.x, graphRect.y);
         ctx.beginPath();
         ctx.rect(0, 0, graphRect.width, graphRect.height);
         ctx.clip();
         ctx.beginPath();
-        ctx.moveTo(xpos(x[0]), ypos(y[0]));
+        ctx.moveTo(xpos(xs[0]), ypos(ys[0]));
         for (let i = 1; i < len; i++)
-            ctx.lineTo(xpos(x[i]), ypos(y[i]));
+            ctx.lineTo(xpos(xs[i]), ypos(ys[i]));
         ctx.stroke();
         ctx.restore();
     };
 
     this.plotVerticalLine = function(x, label) {
-        let pt = new Vec(xpos(x), 0);
-        if (pt.x < 0 || pt.x > graphRect.width)
+        let xp = xpos(x);
+        if (xp < 0 || xp > graphRect.width)
             return;
         ctx.save();
-        setupCtx();
+        prepareCtx();
         ctx.translate(graphRect.x, graphRect.y);
         ctx.beginPath();
-        ctx.moveTo(...pt);
-        ctx.lineTo(pt.x, graphRect.height);
+        ctx.moveTo(xp, 0);
+        ctx.lineTo(xp, graphRect.height);
         ctx.stroke();
         if (label !== undefined)
-            ctx.fillText(label, pt.x - measureWidth(label) / 2, textHeight);
-
+            ctx.fillText(label, xp - measureWidth(label) / 2, textHeight);
         ctx.restore();
     };
 }

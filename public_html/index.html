@@ -1,189 +1,159 @@
 <html>
-    <head>
-        <title>TODO: add title</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            * {border: 0px; width: 100%; height: 100%; margin: 0px; position: absolute;}
+<head>
+    <title>TODO: add title</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            border: 0px;
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            position: absolute;
+        }
+        #ul,#ur,#ll,#lr {width: 50%; height: 50%;}
+        #ll,#lr {top: 50%;}
+        #ur,#lr {left: 50%;}
 
-        </style>
-        <script src="arrays.js"></script>
-        <script src="music.js"></script>
-        <script src="window.js"></script>
-        <script src="fft.js"></script>
-        <script src="graph.js"></script>
-        <script src="geom.js"></script>
-        <script src="//cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.4/radial/gauge.min.js"></script>
+    </style>
+    <script src="arrays.js"></script>
+    <script src="music.js"></script>
+    <script src="window.js"></script>
+    <script src="fft.js"></script>
+    <script src="graph.js"></script>
+    <script src="geom.js"></script>
+    <script>
+        const params = createParamMap();
+        const audioContext = new AudioContext();
+        const sampleRate = audioContext.sampleRate;
+        const sampleSize = parseInt(params['samplesize']) || 1024 * 4;
+        const fft = new FFT(sampleSize);
+        const wave = new Float32Array(sampleSize);
+        const fftMagnitude = [new Float32Array(sampleSize), new Float32Array(sampleSize)];
+        const wavexs = new Float32Array(sampleSize);
+        const wavefftxs = new Float32Array(sampleSize / 2);
 
-        <script>
-            const params = createParamMap();
-            const audioContext = new AudioContext();
-            const sampleRate = audioContext.sampleRate;
-            const sampleSize = parseInt(params['samplesize']) || 1024 * 4;
-            const fft = new FFT(sampleSize);
-            const wave = new Float32Array(sampleSize);
-            const fftMagnitude = [new Float32Array(sampleSize), new Float32Array(sampleSize)];
-            const wavexs = new Float32Array(sampleSize);
-            const wavefftxs = new Float32Array(sampleSize / 2);
-            for (let i = 0; i < sampleSize; i++)
-                wavexs[i] = i;
-            for (let i = 0; i < sampleSize / 2; i++)
-                wavefftxs[i] = i * sampleRate / sampleSize;
+        for (let i = 0; i < sampleSize; i++)
+            wavexs[i] = i;
+        for (let i = 0; i < sampleSize / 2; i++)
+            wavefftxs[i] = i * sampleRate / sampleSize;
 
-            let currentMag = 0;
-            const soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
-            const hw = new GaussianWindow(sampleSize, 0.5);
-            console.log("sample rate: " + sampleRate);
-            let canvas;
-            let ctx;
-            let waveGraph, fftGraph, logFftGraph;
+        let currentMag = 0;
+        const soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
+        const hw = new GaussianWindow(sampleSize, 0.5);
+        console.log("sample rate: " + sampleRate);
+        let waveGraph, fftGraph, logFftGraph;
 
-            function binToFreq(i) {
-                return i * sampleRate / sampleSize;
-            }
+        function binToFreq(i) {
+            return i * sampleRate / sampleSize;
+        }
 
-            function createParamMap() {
-                var map = {};
-                var params = window.location.search.substr(1).split("&");
-                params.forEach(par => {
-                    var kv = par.split("=");
-                    map[kv[0]] = kv[1];
-                });
-                return map;
-            }
+        function createParamMap() {
+            var map = {};
+            var params = window.location.search.substr(1).split("&");
+            params.forEach(par => {
+                var kv = par.split("=");
+                map[kv[0]] = kv[1];
+            });
+            return map;
+        }
 
-            function initCanvas() {
-                canvas = document.getElementById("canvas");
-                window.onresize = updateCanvasSize;
-                updateCanvasSize();
-                ctx = canvas.getContext("2d");
-                waveGraph = new Graph(canvas, new Rect(0, 0, 500, 250), new GraphScale(0, sampleSize, 1024), new GraphScale(-1, 1, 0.2));
-                fftGraph = new Graph(canvas, new Rect(0, 260, 500, 250), new GraphScale(0, 2000, 200), new GraphScale(0, 2, 0.2));
-                logFftGraph = new Graph(canvas, new Rect(520, 260, 500, 250), new GraphScale(0, 2000, 200), new GraphScale(-130, 0, 10));
-                noteIdnicator = new NoteIndicator(canvas, new Rect(520, 0, 500, 250));
-            }
+        function start() {
+            let waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
+            let fftScales = [new GraphScale(0, 2000, 200, 0), new GraphScale(0, 1, 0.1, 1)];
+            let logFftScales = [new GraphScale(0, 2000, 200, 0), new GraphScale(-150, 0, 10, 0)];
+            waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
+            fftGraph = new Graph(document.getElementById('ll'), ...fftScales);
+            logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
+            noteIdnicator = new NoteIndicator(document.getElementById('ur'));
+            navigator.mediaDevices.getUserMedia({audio: true, video: false})
+                .then(handleStream, () => console.error("couldn't open audio input"))
+                .catch(ex => console.error(ex));
+        }
 
-            function updateCanvasSize() {
-                canvas.width = canvas.clientWidth;
-                canvas.height = canvas.clientHeight;
-            }
+        function handleStream(stream) {
+            const sc = audioContext.createMediaStreamSource(stream);
+            const on = audioContext.createOscillator();
+            on.frequency.value = 440;
 
-            function start() {
-                navigator.mediaDevices.getUserMedia({audio: true, video: false})
-                    .then(handleStream, () => console.error("couldn't open audio input"))
-                    .catch(ex => console.error(ex));
-            }
-
-            function handleStream(stream) {
-                const sc = audioContext.createMediaStreamSource(stream);
-                var on = audioContext.createOscillator();
-                on.frequency.value = 440;
-
-                soundProcessor.onaudioprocess = function(apEvent) {
-                    apEvent.inputBuffer.copyFromChannel(wave, 0);
-                    //wave.fill(1.0);
-                    hw.apply(wave, wave);
-                    fft.fft(wave);
-                    fft.magnitude(fftMagnitude[currentMag++ % 2]);
-                    redraw2();
-                };
-                sc.connect(soundProcessor);
+            soundProcessor.onaudioprocess = function (apEvent) {
+                apEvent.inputBuffer.copyFromChannel(wave, 0);
+                //wave.fill(1.0);
+                hw.apply(wave, wave);
+                fft.fft(wave);
+                fft.magnitude(fftMagnitude[currentMag++ % 2]);
+                redraw2();
+            };
+            sc.connect(soundProcessor);
 //                on.connect(soundProcessor);
 
 
-                soundProcessor.connect(audioContext.destination);
-                on.start();
+            soundProcessor.connect(audioContext.destination);
+            on.start();
+        }
+
+        const mag = new Float32Array(sampleSize / 2);
+        const logMag = new Float32Array(sampleSize / 2);
+        const smoothMag = new Float32Array(sampleSize / 2);
+        const movAvg = new Float32Array(sampleSize / 2);
+
+        let windowSum = hw.sum / 2;
+        let lastFoundNoteRes;
+
+        const ma = new MovingAverage(1);
+        const mt = new ComparatorTransform(0);
+        const peekFinder = new PeekFinder();
+        const peekInterpolator = new QuadraticPeekInterpolator();
+        const notes = [];
+        for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.note(1))
+            notes.push(note);
+        const noteFinder = new NoteFinder(notes);
+
+        function redraw2() {
+            waveGraph.drawScales();
+            waveGraph.plotData(wavexs, wave);
+            fftGraph.drawScales();
+            logFftGraph.drawScales();
+            for (var i = 0; i < sampleSize / 2; i++) {
+                mag[i] = (fftMagnitude[0][i] + fftMagnitude[1][i]) / 2;
+                logMag[i] = 20 * Math.log10(mag[i] / windowSum);
             }
-
-            const mag = new Float32Array(sampleSize / 2);
-            const logMag = new Float32Array(sampleSize / 2);
-            const smoothMag = new Float32Array(sampleSize / 2);
-            const movAvg = new Float32Array(sampleSize / 2);
-
-            let windowSum = hw.sum / 2;
-            let lastFoundNoteRes;
-
-            const ma = new MovingAverage(1);
-            const mt = new ComparatorTransform(0);
-            const peekFinder = new PeekFinder();
-            const peekInterpolator = new QuadraticPeekInterpolator();
-            const notes = [];
-            for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.note(1))
-                notes.push(note);
-            const noteFinder = new NoteFinder(notes);
-            function redraw2() {
-                const w = canvas.width;
-                const h = canvas.height;
-                ctx.clearRect(0, 0, w, h);
-                waveGraph.drawScales();
-                waveGraph.plotData(wavexs, wave);
-                fftGraph.drawScales();
-                logFftGraph.drawScales();
-
-                for (let i = 0; i < sampleSize / 2; i++) {
-                    mag[i] = (fftMagnitude[0][i] + fftMagnitude[1][i]) / 2;
-                    logMag[i] = 20*Math.log10(mag[i] / windowSum);
-                }
-                logFftGraph.plotData(wavefftxs, logMag);
-                ma.spread = 1;
-                ma.apply(mag, smoothMag);
-                //fftGr.plotData(wavefftxs, smoothMag);
-                smoothMag.forEach((v, i) => smoothMag[i] = Math.sqrt(v * 2) / 4);
-                ma.spread = sampleSize / 64;
-                ma.apply(smoothMag, movAvg);
-                movAvg.forEach((v, i) => movAvg[i] = v + 0.005);
-                fftGraph.plotData(wavefftxs, movAvg);
-                mt.apply(smoothMag, movAvg, smoothMag);
-                fftGraph.plotData(wavefftxs, smoothMag);
-                peeks = [];
-                peekFinder.forEachPeek(smoothMag, peek => {
-                        if (smoothMag[peek] > 0) {
-                            let ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
-                            let peekFreq = binToFreq(peek + ip);
-                            fftGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(2));
-                            peeks.push(peekFreq);
-                        }
+            logFftGraph.plotData(wavefftxs, logMag);
+            ma.spread = 1;
+            ma.apply(mag, smoothMag);
+            transformInPlace(smoothMag, v => Math.sqrt(v * 2) / 4);
+            ma.spread = sampleSize / 64;
+            ma.apply(smoothMag, movAvg);
+            transformInPlace(movAvg, v => v + 0.005);
+            fftGraph.plotData(wavefftxs, movAvg);
+            mt.apply(smoothMag, movAvg, smoothMag);
+            fftGraph.plotData(wavefftxs, smoothMag);
+            peeks = [];
+            peekFinder.forEachPeek(smoothMag, peek => {
+                    if (smoothMag[peek] > 0) {
+                        let ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
+                        let peekFreq = binToFreq(peek + ip);
+                        fftGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
+                        peeks.push(peekFreq);
                     }
-                );
-                let res = noteFinder.findNote(peeks);
-                if (!res.note)
-                    res = lastFoundNoteRes;
-                if (res) {
-                    lastFoundNoteRes = res;
-                    noteIdnicator.drawNote(res.note.name, res.note.frequency, res.avgCentDiff)
                 }
+            );
+            var res = noteFinder.findNote(peeks);
+            if (!res.note)
+                res = lastFoundNoteRes;
+            if (res) {
+                lastFoundNoteRes = res;
+                noteIdnicator.drawNote(res.note, res.avgCentDiff)
             }
+        }
 
-            function redraw() {
-                const w = canvas.width;
-                const h = canvas.height;
-                const fftSize = sampleSize / 2 / 2;
-                const spread = w / fftSize * 8;
-                const waveSpread = w / sampleSize;
-                const waveScale = -h / 4;
-                const waveOffset = h / 4;
-                const scale = -h / 2;
-                const offset = h;
-                const sqrtN = Math.sqrt(sampleSize);
-                ctx.clearRect(0, 0, w, h);
 
-                ctx.beginPath();
-                ctx.moveTo(-1, waveOffset);
-                for (var i = 0, pos = 0; i < sampleSize && pos <= w; i++, pos += waveSpread)
-                    ctx.lineTo(pos, wave[i] * waveScale + waveOffset);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(-1, offset);
-                for (var i = 0, pos = 0; i < fftSize && pos <= w; i++, pos += spread)
-                    ctx.lineTo(pos, 20 * Math.log10((fftMagnitude[0][i] + fftMagnitude[1][i]) / 2)  * scale + offset);
-
-                ctx.stroke();
-            }
-
-        </script>
-    </head>
-    <body onload="initCanvas();start();">
-        <canvas id="canvas"></canvas>
-        <canvas id="noteGauge"></canvas>
-    </body>
+    </script>
+</head>
+<body onload="start();">
+<canvas id="ul"></canvas>
+<canvas id="ll"></canvas>
+<canvas id="ur"></canvas>
+<canvas id="lr"></canvas>
+</body>
 </html>
