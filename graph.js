@@ -37,9 +37,9 @@ function NoteIndicator(canvas) {
         ctx.strokeStyle = 'rgb(200, 200, 200)';
         ctx.fillStyle = 'rgb(200, 200, 200)';
 
-        const textHeight = ctx.measureText("#").width + 2;
+        const textHeight = ctx.measureText("#").width + 5;
         const absCentDiff = Math.abs(centDiff);
-
+        
         ctx.fillText(noteName, this.width / 2 - ctx.measureText(noteName).width / 2, textHeight);
         ctx.font = '15px sans-serif';
         ctx.fillText(goalFrequency, this.width / 2 - ctx.measureText(goalFrequency).width / 2, textHeight * 2);
