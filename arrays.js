@@ -3,9 +3,9 @@ function transformInPlace(array, transformFunction) {
         array[i] = transformFunction(array[i]);
 }
 
-function copyElements(from, to) {
-    const len = from.length;
+function copyElements(src, dst, dstOffset = 0) {
+    const len = src.length;
     for (let i = 0; i < len; i++)
-        to[i] = from[i];
+        dst[dstOffset + i] = src[i];
 }
 

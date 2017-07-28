@@ -18,18 +18,26 @@
     </style>
     <script src="arrays.js"></script>
     <script src="music.js"></script>
-    <script src="window.js"></script>
     <script src="fft.js"></script>
     <script src="graph.js"></script>
+    <script src="transform.js"></script>
+    <script src="input.js"></script>
+    <script src="window.js"></script>
     <script src="geom.js"></script>
     <script>
         const params = createParamMap();
         const audioContext = new AudioContext();
         const sampleRate = audioContext.sampleRate;
         const sampleSize = parseInt(params['samplesize']) || 1024 * 4;
-        const fft = new FFT(sampleSize);
-        const wave = new Float32Array(sampleSize);
-        const fftMagnitude = [new Float32Array(sampleSize), new Float32Array(sampleSize)];
+        const incSize = sampleSize;
+        const incWaveData = new Float32Array(incSize);
+        const waveBuffer = new CyclicBuffer(sampleSize);
+        const fftTransform = new FFT(sampleSize);
+        const waveData = new Float32Array(sampleSize);
+        const magData = new Float32Array(sampleSize);
+        const windowTransform = new GaussianWindow(sampleSize, 0.5);
+        const magAverage = new AverageBuffer(sampleSize, 4);
+
         const wavexs = new Float32Array(sampleSize);
         const wavefftxs = new Float32Array(sampleSize / 2);
 
@@ -38,9 +46,7 @@
         for (let i = 0; i < sampleSize / 2; i++)
             wavefftxs[i] = i * sampleRate / sampleSize;
 
-        let currentMag = 0;
-        const soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
-        const hw = new GaussianWindow(sampleSize, 0.5);
+        const soundProcessor = audioContext.createScriptProcessor(incSize, 1, 1);
         console.log("sample rate: " + sampleRate);
         let waveGraph, fftGraph, logFftGraph;
 
@@ -74,14 +80,17 @@
         function handleStream(stream) {
             const sc = audioContext.createMediaStreamSource(stream);
             const on = audioContext.createOscillator();
-            on.frequency.value = 440;
+            on.frequency.value = 840;
 
             soundProcessor.onaudioprocess = function (apEvent) {
-                apEvent.inputBuffer.copyFromChannel(wave, 0);
+                apEvent.inputBuffer.copyFromChannel(waveData, 0);
                 //wave.fill(1.0);
-                hw.apply(wave, wave);
-                fft.fft(wave);
-                fft.magnitude(fftMagnitude[currentMag++ % 2]);
+//                waveBuffer.putData(incWaveData);
+//                waveBuffer.writeTo(waveData);
+                windowTransform.apply(waveData);
+                copyElements(waveData, magData);
+                fftTransform.apply(magData);
+                magAverage.apply(magData);
                 redraw2();
             };
             sc.connect(soundProcessor);
@@ -97,10 +106,11 @@
         const smoothMag = new Float32Array(sampleSize / 2);
         const movAvg = new Float32Array(sampleSize / 2);
 
-        let windowSum = hw.sum / 2;
+        let windowSum = windowTransform.sum / 2;
         let lastFoundNoteRes;
 
         const ma = new MovingAverage(1);
+        const longAvg = new MovingAverage(Math.round(sampleSize / 256));
         const mt = new ComparatorTransform(0);
         const peekFinder = new PeekFinder();
         const peekInterpolator = new QuadraticPeekInterpolator();
@@ -108,25 +118,25 @@
         for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.note(1))
             notes.push(note);
         const noteFinder = new NoteFinder(notes);
+        const noteFinderSmoother = new AverageTracker(5);
 
         function redraw2() {
             waveGraph.drawScales();
-            waveGraph.plotData(wavexs, wave);
+            waveGraph.plotData(wavexs, waveData);
             fftGraph.drawScales();
             logFftGraph.drawScales();
-            for (var i = 0; i < sampleSize / 2; i++) {
-                mag[i] = (fftMagnitude[0][i] + fftMagnitude[1][i]) / 2;
-                logMag[i] = 20 * Math.log10(mag[i] / windowSum);
+            for (let i = 0; i < sampleSize / 2; i++) {
+                smoothMag[i] = magData[i];
+                logMag[i] = 20 * Math.log10(magData[i] / windowSum);
             }
             logFftGraph.plotData(wavefftxs, logMag);
-            ma.spread = 1;
-            ma.apply(mag, smoothMag);
+            ma.apply(smoothMag);
             transformInPlace(smoothMag, v => Math.sqrt(v * 2) / 4);
-            ma.spread = sampleSize / 64;
-            ma.apply(smoothMag, movAvg);
-            transformInPlace(movAvg, v => v + 0.005);
+            copyElements(smoothMag, movAvg)
+            longAvg.apply(movAvg);
+            transformInPlace(movAvg, v => v + 0.002);
             fftGraph.plotData(wavefftxs, movAvg);
-            mt.apply(smoothMag, movAvg, smoothMag);
+            mt.apply(smoothMag, movAvg);
             fftGraph.plotData(wavefftxs, smoothMag);
             peeks = [];
             peekFinder.forEachPeek(smoothMag, peek => {
@@ -142,8 +152,10 @@
             if (!res.note)
                 res = lastFoundNoteRes;
             if (res) {
+                if (!lastFoundNoteRes || (res.note.midiNumber !== lastFoundNoteRes.note.midiNumber))
+                    noteFinderSmoother.reset();
                 lastFoundNoteRes = res;
-                noteIdnicator.drawNote(res.note, res.avgCentDiff)
+                noteIdnicator.drawNote(res.note, noteFinderSmoother.nextValue(res.avgCentDiff));
             }
         }
 

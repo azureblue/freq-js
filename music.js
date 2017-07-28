@@ -66,25 +66,26 @@ class Note {
     }
 
     static harmonicFrequency(frequency, harmonic) {
-        if (harmonic === 0) return frequency;
-        switch (harmonic) {
-            case 1:
-                return frequency * 2;
-            case 2:
-                return (frequency * 2) * Math.pow(Note.centRatio, 702);
-            case 3:
-                return frequency * 4;
-            case 4:
-                return (frequency * 4) * Math.pow(Note.centRatio, 386.3);
-            case 5:
-                return (frequency * 4) * Math.pow(Note.centRatio, 702.3);
-            case 6:
-                return (frequency * 4) * Math.pow(Note.centRatio, 968.8);
-            case 7:
-                return (frequency * 8);
-            default:
-                return -1;
-        }
+        //if (harmonic === 0) return frequency;
+        return (frequency * (harmonic + 1));
+        // switch (harmonic) {
+        //     case 1:
+        //         return frequency * 2;
+        //     case 2:
+        //         return (frequency * 2) * Math.pow(Note.centRatio, 702);
+        //     case 3:
+        //         return frequency * 4;
+        //     case 4:
+        //         return (frequency * 4) * Math.pow(Note.centRatio, 386.3);
+        //     case 5:
+        //         return (frequency * 4) * Math.pow(Note.centRatio, 702.3);
+        //     case 6:
+        //         return (frequency * 4) * Math.pow(Note.centRatio, 968.8);
+        //     case 7:
+        //         return (frequency * 8);
+        //     default:
+        //         return -1;
+        // }
     }
 
     distanceInHalftones(note) {

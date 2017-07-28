@@ -45,11 +45,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 THE SOFTWARE.
 */
 function FFT(inputSize) {
+    Transform.call(this);
     const buffer = new FFTComplexBuffer(inputSize);
     const flipBuffer = new Int8Array(inputSize);
     const n = inputSize;
-    this.input = buffer.real;
     this.magnitude = (outputMagnitudeArray) => buffer.magnitude(outputMagnitudeArray);
+    this.apply = function(data) {
+        this.fft(data);
+        this.magnitude(data);
+    };
     this.fft = (input) => {
         copyElements(input, buffer.real);
         buffer.imag.fill(0.0);

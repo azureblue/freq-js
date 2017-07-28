@@ -1,60 +1,3 @@
-class Transform {
-    apply(src, dst) {
-    };
-}
-
-
-class BinaryTransform {
-    apply(src1, src2, dst) {
-    };
-}
-
-class ComparatorTransform extends BinaryTransform {
-    constructor(nullValue) {
-        super();
-        this.nv = nullValue;
-    }
-
-    apply(src, threshold, dst) {
-        const len = src.length;
-        for (let i = 0; i < len; i++)
-            dst[i] = src[i] < threshold[i] ? this.nv : src[i];
-    }
-}
-
-class MovingAverage extends Transform {
-    constructor(spread) {
-        super();
-        this.spread = spread;
-    }
-
-    apply(src, dst) {
-        const len = src.length;
-        const spread = this.spread;
-        const n = spread * 2 + 1;
-
-        var acc = 0;
-        for (let i = 0; i < spread; i++)
-            acc += src[i];
-
-        for (let i = 0; i < spread + 1; i++) {
-            acc += src[spread + i];
-            dst[i] = acc / (spread + 1 + i);
-        }
-
-        for (let i = spread + 1; i < len - spread; i++) {
-            acc = acc - src[i - spread - 1] + src[i + spread];
-            dst[i] = acc / n;
-        }
-
-        for (let i = 0; i < spread; i++) {
-            acc -= src[len - n + i];
-            dst[len - spread + i] = acc / (n - (i + 1));
-        }
-    }
-}
-
-
 class Window extends Transform {
 
     get size() {
@@ -66,10 +9,10 @@ class Window extends Transform {
         this._size = size;
     }
 
-    apply(src, dst) {
+    apply(data) {
         const len = this.size;
         for (let i = 0; i < len; i++)
-            dst[i] = this.weightFunction(i) * src[i];
+            data[i] = this.weightFunction(i) * data[i];
     }
 
     get sum() {
@@ -89,7 +32,7 @@ class HanningWindow extends Window {
     }
 
     weightFunction(n) {
-        return 1 - (0.54 + 0.46 * Math.cos((2 * Math.PI * n) / (N - 1)))
+        return 1 - (0.54 + 0.46 * Math.cos((2 * Math.PI * n) / (this.size - 1)))
     };
 }
 
@@ -145,7 +88,7 @@ class NoteFinder {
     constructor(notes) {
         this.notes = notes;
         this.harmonics = notes.map(no => new Harmonics(no));
-        this.harmonicWeights = [2, 1, 1, 1, 1];
+        this.harmonicWeights = [2, 1, 1, 1, 1, 1, 1, 1];
     }
     
     findIdxClosestByCents(arr, freq) {
@@ -169,7 +112,7 @@ class NoteFinder {
         var bestAvgCentDiff = null;
         let bestScore = 0;
         this.notes.forEach((no, idx) => {
-            const harmonicsPresent = [undefined, undefined, undefined, undefined, undefined, undefined];
+            const harmonicsPresent = [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined];
             let harmonicsPresentNum = 0;
             let hs = this.harmonics[idx].harmonics;
             hs.forEach((h, hidx) => {

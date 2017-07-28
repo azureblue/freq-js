@@ -44,7 +44,7 @@ function NoteIndicator(canvas) {
         ctx.font = '15px sans-serif';
         ctx.fillText(goalFrequency, this.width / 2 - ctx.measureText(goalFrequency).width / 2, textHeight * 2);
         ctx.fillText(centDiff, this.width / 2 - ctx.measureText(centDiff).width / 2, textHeight * 3);
-        ctx.fillRect(this.width / 2, textHeight * 4, centDiff / 50 * this.width / 2, textHeight * 8);
+        ctx.fillRect(this.width / 2, textHeight * 4, centDiff / 50 * this.width / 2, this.height - textHeight * 5);
         ctx.restore();
     }
 }
@@ -130,13 +130,17 @@ function Graph(canvas, xscale, yscale) {
             return;
         ctx.save();
         prepareCtx();
+        let lw = measureWidth(label);
         ctx.translate(graphRect.x, graphRect.y);
         ctx.beginPath();
-        ctx.moveTo(xp, 0);
+        ctx.moveTo(xp, lw);
         ctx.lineTo(xp, graphRect.height);
         ctx.stroke();
-        if (label !== undefined)
-            ctx.fillText(label, xp - measureWidth(label) / 2, textHeight);
+        if (label !== undefined) {
+            ctx.translate(xp, 0);
+            ctx.rotate(Math.PI / 2);
+            ctx.fillText(label, 1, textHeight / 2);
+        }
         ctx.restore();
     };
 }
