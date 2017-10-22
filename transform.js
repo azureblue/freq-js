@@ -5,8 +5,7 @@ Transform.prototype.apply = function(data) {
 };
 
 class BinaryTransform {
-    apply(data, data2) {
-    };
+    apply(data, data2) {}
 }
 
 class ComparatorTransform extends BinaryTransform {

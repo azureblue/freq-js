@@ -11,9 +11,10 @@
             margin: 0px;
             position: absolute;
         }
-        #ul,#ur,#ll,#lr {width: 50%; height: 50%;}
-        #ll,#lr {top: 50%;}
-        #ur,#lr {left: 50%;}
+        #ul,#ur,#lr {width: 50%; height: 50%;}
+        #lr {width: 100%;}
+        #lr {top: 50%;}
+        #ur {left: 50%;}
 
     </style>
     <script src="arrays.js"></script>
@@ -24,6 +25,7 @@
     <script src="input.js"></script>
     <script src="window.js"></script>
     <script src="geom.js"></script>
+    <script src="rolling_median.js"></script>
     <script>
         const params = createParamMap();
         const audioContext = new AudioContext();
@@ -66,10 +68,10 @@
 
         function start() {
             let waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
-            let fftScales = [new GraphScale(0, 2000, 200, 0), new GraphScale(0, 1, 0.1, 1)];
-            let logFftScales = [new GraphScale(0, 2000, 200, 0), new GraphScale(-150, 0, 10, 0)];
+            let cepstrumScales = [new GraphScale(100, sampleSize, 500, 0), new GraphScale(0, 20, 2, 0)];
+            let logFftScales = [new GraphScale(0, 2000, 100, 0), new GraphScale(-140, 0, 20, 0)];
             waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
-            fftGraph = new Graph(document.getElementById('ll'), ...fftScales);
+            //cepstrumGraph = new Graph(document.getElementById('ll'), ...cepstrumScales);
             logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
             noteIdnicator = new NoteIndicator(document.getElementById('ur'));
             navigator.mediaDevices.getUserMedia({audio: true, video: false})
@@ -96,21 +98,23 @@
             sc.connect(soundProcessor);
 //                on.connect(soundProcessor);
 
-
             soundProcessor.connect(audioContext.destination);
-            on.start();
+//             on.start();
         }
 
         const mag = new Float32Array(sampleSize / 2);
+        const cepstrum = new Float32Array(sampleSize);
         const logMag = new Float32Array(sampleSize / 2);
         const smoothMag = new Float32Array(sampleSize / 2);
         const movAvg = new Float32Array(sampleSize / 2);
+        const cutoff = new Float32Array(sampleSize / 2);
 
         let windowSum = windowTransform.sum / 2;
         let lastFoundNoteRes;
 
         const ma = new MovingAverage(1);
-        const longAvg = new MovingAverage(Math.round(sampleSize / 256));
+        const median = new RollingMedian(sampleSize / 512);
+        const longAvg = new MovingAverage(Math.round(sampleSize / 512));
         const mt = new ComparatorTransform(0);
         const peekFinder = new PeekFinder();
         const peekInterpolator = new QuadraticPeekInterpolator();
@@ -123,27 +127,40 @@
         function redraw2() {
             waveGraph.drawScales();
             waveGraph.plotData(wavexs, waveData);
-            fftGraph.drawScales();
+            //cepstrumGraph.drawScales();
             logFftGraph.drawScales();
             for (let i = 0; i < sampleSize / 2; i++) {
                 smoothMag[i] = magData[i];
                 logMag[i] = 20 * Math.log10(magData[i] / windowSum);
             }
+//             for (let i = 0; i < sampleSize; i++)
+//                 cepstrum[i] = Math.log(magData[i]);
+            
+            //fftTransform.apply(cepstrum);
+            
             logFftGraph.plotData(wavefftxs, logMag);
-            ma.apply(smoothMag);
-            transformInPlace(smoothMag, v => Math.sqrt(v * 2) / 4);
-            copyElements(smoothMag, movAvg)
+            
+            //ma.apply(smoothMag);
+            
+            //transformInPlace(smoothMag, v => Math.sqrt(v * 2) / 4);
+            copyElements(logMag, movAvg);
+            //copyElements(smoothMag, movAvg)
+            median.apply(movAvg);
             longAvg.apply(movAvg);
             transformInPlace(movAvg, v => v + 0.002);
-            fftGraph.plotData(wavefftxs, movAvg);
-            mt.apply(smoothMag, movAvg);
-            fftGraph.plotData(wavefftxs, smoothMag);
+            copyElements(movAvg, cutoff);
+            transformInPlace(cutoff, v => v + 15);
+            
+            //cepstrumGraph.plotData(wavefftxs, cepstrum);
+            logFftGraph.plotData(wavefftxs, movAvg);
+            //logFftGraph.plotData(wavefftxs, smoothMag);
+            //mt.apply(smoothMag, cutoff);
             peeks = [];
-            peekFinder.forEachPeek(smoothMag, peek => {
-                    if (smoothMag[peek] > 0) {
+            peekFinder.forEachPeek(logMag, peek => {
+                    if (logMag[peek] - cutoff[peek] > 0) {
                         let ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
                         let peekFreq = binToFreq(peek + ip);
-                        fftGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
+                        logFftGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
                         peeks.push(peekFreq);
                     }
                 }
@@ -164,7 +181,7 @@
 </head>
 <body onload="start();">
 <canvas id="ul"></canvas>
-<canvas id="ll"></canvas>
+<!-- <canvas id="ll"></canvas> -->
 <canvas id="ur"></canvas>
 <canvas id="lr"></canvas>
 </body>
