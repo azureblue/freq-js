@@ -74,7 +74,10 @@ class Harmonics {
             note.harmonicFrequency(2),
             note.harmonicFrequency(3),
             note.harmonicFrequency(4),
-            note.harmonicFrequency(5)
+            note.harmonicFrequency(5),
+            note.harmonicFrequency(6),
+            note.harmonicFrequency(7),
+            note.harmonicFrequency(8),
         ]
     }
 
@@ -116,23 +119,43 @@ class NoteFinder {
             let harmonicsPresentNum = 0;
             let hs = this.harmonics[idx].harmonics;
             hs.forEach((h, hidx) => {
-                const bestPeek = peeks[this.findIdxClosestByCents(peeks, h)];
+                const peekIdx = this.findIdxClosestByCents(peeks, h);
+                const bestPeek = peeks[peekIdx];
                 const centDiff = Note.intervalInCents(h, bestPeek);
-                if (Math.abs(centDiff) < 50)
-                    harmonicsPresent[hidx] = centDiff, harmonicsPresentNum++;
+                if (Math.abs(centDiff) < 50) {
+                    harmonicsPresent[hidx] = {
+                        diff: centDiff,
+                        peekIdx: peekIdx
+                    };
+                    harmonicsPresentNum++;
+                }
             });
-            // if (harmonicsPresentNum === 0)
-            //     return;
-            // if (harmonicsPresentNum === 1 && !harmonicsPresent[0])
-            //     return;
             if (harmonicsPresentNum < 4)
                 return;
-            const score = harmonicsPresentNum;
+            let adjHarmonicsPresent = 0;
+            
+            harms:
+            for (let i = 1; i < harmonicsPresent.length; i++)
+                if (harmonicsPresent[i] && harmonicsPresent[i - 1]) {
+                    const peekA = harmonicsPresent[i - 1].peekIdx;
+                    const peekB = harmonicsPresent[i].peekIdx;
+                    const midFreq = (peeks[peekB] - peeks[peekA]) / 2 + peeks[peekA];
+                    for (let peek = peekA; peek < peekB; peek++) {
+                        if (Note.intervalInCents(peeks[peek], midFreq) < 20)
+                            continue harms;
+                    }
+                    adjHarmonicsPresent++;
+                }
+            if (adjHarmonicsPresent < 3)
+                return;
+            
+            const score = harmonicsPresentNum + adjHarmonicsPresent;
             if (score > bestScore) {
+                harmonicsPresent
                 bestAvgCentDiff = 0;
                 for (let i = 0; i < harmonicsPresent.length; i++)
                     if (harmonicsPresent[i] !== undefined)
-                        bestAvgCentDiff += harmonicsPresent[i];
+                        bestAvgCentDiff += harmonicsPresent[i].diff;
                 bestAvgCentDiff /= harmonicsPresent.length;
                 bestScore = score;
                 bestNote = no;
