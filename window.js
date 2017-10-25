@@ -112,7 +112,7 @@ class NoteFinder {
         const len = peeks.length;
         peeks = peeks.sort();
         let bestNote = null;
-        var bestAvgCentDiff = null;
+        let bestDiff = 0;
         let bestScore = 0;
         this.notes.forEach((no, idx) => {
             const harmonicsPresent = [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined];
@@ -152,11 +152,14 @@ class NoteFinder {
             const score = harmonicsPresentNum + adjHarmonicsPresent;
             if (score > bestScore) {
                 harmonicsPresent
-                bestAvgCentDiff = 0;
+                let centDiffSum = 0;
+                let presetHarmsCount = 0;
                 for (let i = 0; i < harmonicsPresent.length; i++)
-                    if (harmonicsPresent[i] !== undefined)
-                        bestAvgCentDiff += harmonicsPresent[i].diff;
-                bestAvgCentDiff /= harmonicsPresent.length;
+                    if (harmonicsPresent[i] !== undefined) {
+                        centDiffSum += harmonicsPresent[i].diff;
+                        presetHarmsCount++;
+                    }
+                bestDiff = centDiffSum / presetHarmsCount;
                 bestScore = score;
                 bestNote = no;
             }
@@ -173,6 +176,6 @@ class NoteFinder {
         //     }
         // });
 
-        return {note: bestNote, avgCentDiff: bestAvgCentDiff} ;
+        return {note: bestNote, avgCentDiff: bestDiff} ;
     }
 }
