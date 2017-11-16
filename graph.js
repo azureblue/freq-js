@@ -28,22 +28,22 @@ function NoteIndicator(canvas) {
         const ctx = this.ctx;
         this.updateSizeAndClean();
         let noteName = note.name.toUpperCase(), goalFrequency = note.frequency();
-        goalFrequency = goalFrequency.toFixed(2);
-        centDiff = centDiff.toFixed(2);
+        goalFrequency = "" + goalFrequency.toFixed(2) + " Hz";
+        let centDiffLabel = "" + centDiff.toFixed(2) + " cents";
 
         ctx.save();
         ctx.font = '20px sans-serif';
         ctx.tick = 1;
         ctx.strokeStyle = 'rgb(200, 200, 200)';
-        ctx.fillStyle = 'rgb(200, 200, 200)';
+        ctx.fillStyle = 'rgb(100, 100, 100)';
 
         const textHeight = ctx.measureText("#").width + 5;
         const absCentDiff = Math.abs(centDiff);
-        
+
         ctx.fillText(noteName, this.width / 2 - ctx.measureText(noteName).width / 2, textHeight);
         ctx.font = '15px sans-serif';
         ctx.fillText(goalFrequency, this.width / 2 - ctx.measureText(goalFrequency).width / 2, textHeight * 2);
-        ctx.fillText(centDiff, this.width / 2 - ctx.measureText(centDiff).width / 2, textHeight * 3);
+        ctx.fillText(centDiffLabel, this.width / 2 - ctx.measureText(centDiffLabel).width / 2, textHeight * 3);
         ctx.fillRect(this.width / 2, textHeight * 4, centDiff / 50 * this.width / 2, this.height - textHeight * 5);
         ctx.restore();
     }
