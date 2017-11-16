@@ -27,7 +27,7 @@ function NoteIndicator(canvas) {
     this.drawNote = function(note, centDiff) {
         const ctx = this.ctx;
         this.updateSizeAndClean();
-        let noteName = note.name, goalFrequency = note.frequency;
+        let noteName = note.name.toUpperCase(), goalFrequency = note.frequency();
         goalFrequency = goalFrequency.toFixed(2);
         centDiff = centDiff.toFixed(2);
 

@@ -5,20 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * {
-            border: 0px;
+            border: 0;
             width: 100%;
             height: 100%;
-            margin: 0px;
+            margin: 0;
             position: absolute;
         }
-        #ul,#ur,#lr {width: 50%; height: 50%;}
-        #lr {width: 100%;}
-        #lr {top: 50%;}
-        #ur {left: 50%;}
+
+        #ul, #ur, #lr {
+            width: 50%;
+            height: 50%;
+        }
+
+        #lr {
+            width: 100%;
+        }
+
+        #lr {
+            top: 50%;
+        }
+
+        #ur {
+            left: 50%;
+        }
 
     </style>
+    <script src="cyclicBuffer.js"></script>
+    <script src="average.js"></script>
     <script src="arrays.js"></script>
     <script src="music.js"></script>
+    <script src="peeks.js"></script>
+    <script src="noteFinder.js"></script>
     <script src="fft.js"></script>
     <script src="graph.js"></script>
     <script src="transform.js"></script>
@@ -26,54 +43,26 @@
     <script src="window.js"></script>
     <script src="geom.js"></script>
     <script src="rolling_median.js"></script>
+    <script src="analyser.js"></script>
     <script>
-        const params = createParamMap();
         const audioContext = new AudioContext();
         const sampleRate = audioContext.sampleRate;
-        const sampleSize = parseInt(params['samplesize']) || 1024 * 4;
-        const incSize = sampleSize;
-        const incWaveData = new Float32Array(incSize);
-        const waveBuffer = new CyclicBuffer(sampleSize);
-        const fftTransform = new FFT(sampleSize);
+        const sampleSize = 1024 * 4;
         const waveData = new Float32Array(sampleSize);
-        const magData = new Float32Array(sampleSize);
-        const windowTransform = new GaussianWindow(sampleSize, 0.5);
-        const magAverage = new AverageBuffer(sampleSize, 4);
 
-        const wavexs = new Float32Array(sampleSize);
-        const wavefftxs = new Float32Array(sampleSize / 2);
-
-        for (let i = 0; i < sampleSize; i++)
-            wavexs[i] = i;
-        for (let i = 0; i < sampleSize / 2; i++)
-            wavefftxs[i] = i * sampleRate / sampleSize;
-
-        const soundProcessor = audioContext.createScriptProcessor(incSize, 1, 1);
+        const soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
         console.log("sample rate: " + sampleRate);
-        let waveGraph, fftGraph, logFftGraph;
 
-        function binToFreq(i) {
-            return i * sampleRate / sampleSize;
-        }
-
-        function createParamMap() {
-            var map = {};
-            var params = window.location.search.substr(1).split("&");
-            params.forEach(par => {
-                var kv = par.split("=");
-                map[kv[0]] = kv[1];
-            });
-            return map;
-        }
+        let waveGraph, logFftGraph, noteIndicator;
+        let analyser;
 
         function start() {
             let waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
-            let cepstrumScales = [new GraphScale(100, sampleSize, 500, 0), new GraphScale(0, 20, 2, 0)];
-            let logFftScales = [new GraphScale(0, 2000, 100, 0), new GraphScale(-140, 0, 20, 0)];
+            let logFftScales = [new GraphScale(0, 4000, 100, 0), new GraphScale(-140, 0, 20, 0)];
             waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
-            //cepstrumGraph = new Graph(document.getElementById('ll'), ...cepstrumScales);
             logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
-            noteIdnicator = new NoteIndicator(document.getElementById('ur'));
+            noteIndicator = new NoteIndicator(document.getElementById('ur'));
+            analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
             navigator.mediaDevices.getUserMedia({audio: true, video: false})
                 .then(handleStream, () => console.error("couldn't open audio input"))
                 .catch(ex => console.error(ex));
@@ -81,101 +70,15 @@
 
         function handleStream(stream) {
             const sc = audioContext.createMediaStreamSource(stream);
-            const on = audioContext.createOscillator();
-            on.frequency.value = 840;
 
-            soundProcessor.onaudioprocess = function (apEvent) {
-                apEvent.inputBuffer.copyFromChannel(waveData, 0);
-                //wave.fill(1.0);
-//                waveBuffer.putData(incWaveData);
-//                waveBuffer.writeTo(waveData);
-                windowTransform.apply(waveData);
-                copyElements(waveData, magData);
-                fftTransform.apply(magData);
-                magAverage.apply(magData);
-                redraw2();
+            soundProcessor.onaudioprocess = function (audioProcessEvent) {
+                audioProcessEvent.inputBuffer.copyFromChannel(waveData, 0);
+                analyser.update(waveData);
             };
+
             sc.connect(soundProcessor);
-//                on.connect(soundProcessor);
-
             soundProcessor.connect(audioContext.destination);
-//             on.start();
         }
-
-        const mag = new Float32Array(sampleSize / 2);
-        const cepstrum = new Float32Array(sampleSize);
-        const logMag = new Float32Array(sampleSize / 2);
-        const smoothMag = new Float32Array(sampleSize / 2);
-        const movAvg = new Float32Array(sampleSize / 2);
-        const cutoff = new Float32Array(sampleSize / 2);
-
-        let windowSum = windowTransform.sum / 2;
-        let lastFoundNoteRes;
-
-        const ma = new MovingAverage(1);
-        const median = new RollingMedian(sampleSize / 512);
-        const longAvg = new MovingAverage(Math.round(sampleSize / 512));
-        const mt = new ComparatorTransform(0);
-        const peekFinder = new PeekFinder();
-        const peekInterpolator = new QuadraticPeekInterpolator();
-        const notes = [];
-        for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.note(1))
-            notes.push(note);
-        const noteFinder = new NoteFinder(notes);
-        const noteFinderSmoother = new AverageTracker(5);
-
-        function redraw2() {
-            waveGraph.drawScales();
-            waveGraph.plotData(wavexs, waveData);
-            //cepstrumGraph.drawScales();
-            logFftGraph.drawScales();
-            for (let i = 0; i < sampleSize / 2; i++) {
-                smoothMag[i] = magData[i];
-                logMag[i] = 20 * Math.log10(magData[i] / windowSum);
-            }
-//             for (let i = 0; i < sampleSize; i++)
-//                 cepstrum[i] = Math.log(magData[i]);
-            
-            //fftTransform.apply(cepstrum);
-            
-            logFftGraph.plotData(wavefftxs, logMag);
-            
-            //ma.apply(smoothMag);
-            
-            //transformInPlace(smoothMag, v => Math.sqrt(v * 2) / 4);
-            copyElements(logMag, movAvg);
-            //copyElements(smoothMag, movAvg)
-            median.apply(movAvg);
-            longAvg.apply(movAvg);
-            transformInPlace(movAvg, v => v + 0.002);
-            copyElements(movAvg, cutoff);
-            transformInPlace(cutoff, v => v + 15);
-            
-            //cepstrumGraph.plotData(wavefftxs, cepstrum);
-            logFftGraph.plotData(wavefftxs, movAvg);
-            //logFftGraph.plotData(wavefftxs, smoothMag);
-            //mt.apply(smoothMag, cutoff);
-            peeks = [];
-            peekFinder.forEachPeek(logMag, peek => {
-                    if (logMag[peek] - cutoff[peek] > 0) {
-                        let ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
-                        let peekFreq = binToFreq(peek + ip);
-                        logFftGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
-                        peeks.push(peekFreq);
-                    }
-                }
-            );
-            var res = noteFinder.findNote(peeks);
-            if (!res.note)
-                res = lastFoundNoteRes;
-            if (res) {
-                if (!lastFoundNoteRes || (res.note.midiNumber !== lastFoundNoteRes.note.midiNumber))
-                    noteFinderSmoother.reset();
-                lastFoundNoteRes = res;
-                noteIdnicator.drawNote(res.note, noteFinderSmoother.nextValue(res.avgCentDiff));
-            }
-        }
-
 
     </script>
 </head>
