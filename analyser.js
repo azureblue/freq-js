@@ -3,7 +3,7 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
     const magData = new Float32Array(sampleSize);
     const windowTransform = new GaussianWindow(sampleSize, 0.4);
     const windowSum = windowTransform.sum;
-    const magAverage = new BuffersAverage(sampleSize, 4);
+    const magAverage = new BuffersAverage(sampleSize, 3);
     const logMag = new Float32Array(sampleSize / 2);
     const noiseFloor = new Float32Array(sampleSize / 2);
 

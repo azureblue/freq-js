@@ -1,4 +1,5 @@
 <html>
+
 <head>
     <title>js-freq</title>
     <meta charset="UTF-8">
@@ -12,7 +13,9 @@
             position: absolute;
         }
 
-        #ul, #ur, #lr {
+        #ul,
+        #ur,
+        #lr {
             width: 50%;
             height: 50%;
         }
@@ -29,6 +32,46 @@
             left: 50%;
         }
 
+        .overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+        .splash {
+            background-color: rgba(0, 0, 0, 0.137);
+            z-index: 10;
+        }
+
+        div.button {
+            margin: 0.2rem;
+            padding: 0.4rem;
+            cursor: pointer;
+        }
+
+        #start {
+            font-family: sans-serif;
+            font-size: 4rem;
+            transition-duration: 1s;
+        }
+
+        .button:hover {
+            background-color: rgb(43, 226, 119);
+            transition-duration: 1s;
+        }
+
+        .center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: table;
+            /* transform: none; */
+            width: auto;
+            height: auto;
+
+        }
     </style>
     <script src="cyclicBuffer.js"></script>
     <script src="average.js"></script>
@@ -44,48 +87,62 @@
     <script src="geom.js"></script>
     <script src="rolling_median.js"></script>
     <script src="analyser.js"></script>
-    <script>
-        const audioContext = new AudioContext();
-        const sampleRate = audioContext.sampleRate;
-        const sampleSize = 1024 * 4;
-        const waveData = new Float32Array(sampleSize);
 
-        const soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
+</head>
+
+<body>
+    <div id="start-overlay" class="overlay splash">
+        <div id="start" class="button center">START</div>
+    </div>
+    <canvas id="ul"></canvas>
+    <!-- <canvas id="ll"></canvas> -->
+    <canvas id="ur"></canvas>
+    <canvas id="lr"></canvas>
+</body>
+<script>
+
+    const audioContext = new AudioContext();
+    const sampleRate = audioContext.sampleRate;
+    const sampleSize = 1024 * 4;
+    const waveData = new Float32Array(sampleSize);
+
+    let waveGraph, logFftGraph, noteIndicator;
+    let analyser;
+
+    let soundProcessor
+
+    function start() {
+        audioContext.resume();
+        soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
         console.log("sample rate: " + sampleRate);
 
-        let waveGraph, logFftGraph, noteIndicator;
-        let analyser;
+        let waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
+        let logFftScales = [new GraphScale(0, 4000, 100, 0), new GraphScale(-140, 0, 20, 0)];
+        waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
+        logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
+        noteIndicator = new NoteIndicator(document.getElementById('ur'));
+        analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then(handleStream, () => console.error("couldn't open audio input"))
+            .catch(ex => console.error(ex));
+    }
 
-        function start() {
-            let waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
-            let logFftScales = [new GraphScale(0, 4000, 100, 0), new GraphScale(-140, 0, 20, 0)];
-            waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
-            logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
-            noteIndicator = new NoteIndicator(document.getElementById('ur'));
-            analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
-            navigator.mediaDevices.getUserMedia({audio: true, video: false})
-                .then(handleStream, () => console.error("couldn't open audio input"))
-                .catch(ex => console.error(ex));
-        }
+    function handleStream(stream) {
+        const sc = audioContext.createMediaStreamSource(stream);
 
-        function handleStream(stream) {
-            const sc = audioContext.createMediaStreamSource(stream);
+        soundProcessor.onaudioprocess = function (audioProcessEvent) {
+            audioProcessEvent.inputBuffer.copyFromChannel(waveData, 0);
+            analyser.update(waveData);
+        };
 
-            soundProcessor.onaudioprocess = function (audioProcessEvent) {
-                audioProcessEvent.inputBuffer.copyFromChannel(waveData, 0);
-                analyser.update(waveData);
-            };
+        sc.connect(soundProcessor);
+        soundProcessor.connect(audioContext.destination);
+    }
 
-            sc.connect(soundProcessor);
-            soundProcessor.connect(audioContext.destination);
-        }
+    document.querySelector("#start").addEventListener("click", () => {
+        document.querySelector("#start-overlay").remove();
+        start();
+    });
 
-    </script>
-</head>
-<body onload="start();">
-<canvas id="ul"></canvas>
-<!-- <canvas id="ll"></canvas> -->
-<canvas id="ur"></canvas>
-<canvas id="lr"></canvas>
-</body>
+</script>
 </html>

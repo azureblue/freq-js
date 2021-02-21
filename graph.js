@@ -51,7 +51,14 @@ function NoteIndicator(canvas) {
 
 function Graph(canvas, xscale, yscale) {
     GraphBase.call(this, canvas);
-    this.font = '8px sans-serif';
+
+    let prepareCtx = () => {
+        ctx.tick = this.gridWidth;
+        ctx.strokeStyle = this.gridStyle;
+        ctx.font = this.font;
+    };
+
+    this.font = '0.9rem sans-serif';
     this.gridWidth = 1;
     this.gridStyle = 'rgb(200, 200, 200)';
     this.plotStyle = 'rgb(100, 100, 100)';
@@ -59,25 +66,21 @@ function Graph(canvas, xscale, yscale) {
     this.margin = 2;
 
     const ctx = this.ctx;
-    const measureWidth = text => ctx.measureText(text).width;
+    const measureWidth = text => ctx.measureText("" + text).width;
     //noinspection JSSuspiciousNameCombination
+    prepareCtx();
     const textHeight = ctx.measureText("#").width;
     const maxYLabelWidth = Math.max(...[...yscale.ticks()].map(measureWidth));
     const maxXLabelWidth = Math.max(...[...xscale.ticks()].map(measureWidth));
     const graphXPadding = maxYLabelWidth + this.labelMargin * 2;
-    const graphYPadding = textHeight + this.labelMargin * 2;
+    const graphYPadding = textHeight * 2 + this.labelMargin * 2;
     let graphRect = {x: 0, y: 0, width: 0, height: 0};
     let xpos = xv => Math.round(xscale.normalizeValue(xv) * graphRect.width);
     let ypos = yv => Math.round(graphRect.height - yscale.normalizeValue(yv) * graphRect.height);
-    let prepareCtx = () => {
-        ctx.tick = this.gridWidth;
-        ctx.strokeStyle = this.gridStyle;
-        ctx.font = this.font;
-    };
 
     let updateGraphRect = () => {
         graphRect.x = this.margin + graphXPadding;
-        graphRect.y = this.margin + this.labelMargin;
+        graphRect.y = this.margin + this.labelMargin + textHeight / 2;
         graphRect.width = this.width - graphXPadding - this.margin * 2;
         graphRect.height = this.height - graphYPadding - this.margin * 2;
     };
@@ -96,12 +99,18 @@ function Graph(canvas, xscale, yscale) {
             ctx.lineTo(graphRect.width, y);
             ctx.fillText(tick, -labWidth - this.labelMargin, y + textHeight / 2);
         }
+        let lastEnd = -1000;
         for (tick of xscale.ticks()) {
             let labWidth = measureWidth(tick);
             let x = xpos(tick);
             ctx.moveTo(x, 0);
             ctx.lineTo(x, graphRect.height);
-            ctx.fillText(tick, x -labWidth / 2, graphRect.height + textHeight + this.labelMargin);
+            let labelStartX = x - labWidth / 2;
+            if (labelStartX - lastEnd > 5) {
+                ctx.fillText(tick, labelStartX, graphRect.height + textHeight + this.labelMargin);
+                lastEnd = labelStartX + labWidth;
+            }
+
         }
         ctx.stroke();
         ctx.restore();
