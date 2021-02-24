@@ -100,6 +100,7 @@
     <canvas id="lr"></canvas>
 </body>
 <script>
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
 
     const audioContext = new AudioContext();
     const sampleRate = audioContext.sampleRate;
