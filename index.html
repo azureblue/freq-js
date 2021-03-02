@@ -102,41 +102,49 @@
 <script>
     var AudioContext = window.AudioContext || window.webkitAudioContext;
 
+    /**
+     @type AudioContext
+     */
     const audioContext = new AudioContext();
     const sampleRate = audioContext.sampleRate;
     const sampleSize = 1024 * 4;
+
     const waveData = new Float32Array(sampleSize);
 
-    let waveGraph, logFftGraph, noteIndicator;
-    let analyser;
+    const waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
+    const logFftScales = [new GraphScale(0, 4000, 100, 0), new GraphScale(-140, 0, 20, 0)];
+    const waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
+    const logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
+    const noteIndicator = new NoteIndicator(document.getElementById('ur'));
+
+    const analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
 
     let soundProcessor
 
     function start() {
         audioContext.resume();
         soundProcessor = audioContext.createScriptProcessor(sampleSize, 1, 1);
-        console.log("sample rate: " + sampleRate);
 
-        let waveScales = [new GraphScale(0, sampleSize, 1024, 0), new GraphScale(-1, 1, 0.2, 1)];
-        let logFftScales = [new GraphScale(0, 4000, 100, 0), new GraphScale(-140, 0, 20, 0)];
-        waveGraph = new Graph(document.getElementById('ul'), ...waveScales);
-        logFftGraph = new Graph(document.getElementById('lr'), ...logFftScales);
-        noteIndicator = new NoteIndicator(document.getElementById('ur'));
-        analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
+        soundProcessor.onaudioprocess = function (/** @type AudioProcessingEvent */audioProcessEvent) {
+            const inputBuffer = audioProcessEvent.inputBuffer;
+            if (inputBuffer.copyFromChannel !== undefined)
+                audioProcessEvent.inputBuffer.copyFromChannel(waveData, 0);
+            else
+                waveData.set(audioProcessEvent.inputBuffer.getChannelData(0));
+
+            analyser.update(waveData);
+        };
+
+        // console.log("sample rate: " + sampleRate);
+
         navigator.mediaDevices.getUserMedia({ audio: true, video: false })
             .then(handleStream, () => console.error("couldn't open audio input"))
             .catch(ex => console.error(ex));
     }
 
     function handleStream(stream) {
-        const sc = audioContext.createMediaStreamSource(stream);
-
-        soundProcessor.onaudioprocess = function (audioProcessEvent) {
-            audioProcessEvent.inputBuffer.copyFromChannel(waveData, 0);
-            analyser.update(waveData);
-        };
-
-        sc.connect(soundProcessor);
+        const streamSource = audioContext.createMediaStreamSource(stream);
+        streamSource.connect(soundProcessor);
         soundProcessor.connect(audioContext.destination);
     }
 
