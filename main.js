@@ -1,10 +1,11 @@
 import { Analyser } from "./analyser.js";
-import { UserAudioDataSource } from "./audioSource.js";
+import { OverlappingDataSource, UserAudioDataSource } from "./audioSource.js";
 import { AxisTicksGenerator, Graph, LinearScale, LogarithmicScale, NoteIndicator } from "./graph.js";
 
 const sampleSize = 1024 * 4;
 let audioSource = new UserAudioDataSource(sampleSize);
 const sampleRate = audioSource.sampleRate;
+let overlapper = new OverlappingDataSource(sampleRate, sampleSize, sampleSize / 2);
 
 console.debug("sample rate: " + sampleRate);
 console.debug("frame time: " + (sampleSize / sampleRate));
@@ -24,6 +25,8 @@ const noteIndicator = new NoteIndicator(document.getElementById('ur'));
 const analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
 
 function start() {
+    // overlapper.start({accept: data => analyser.update(data)});
+    // audioSource.startTest({accept: data => overlapper.accept(data)}, [70, 100, 220, 502]);
     audioSource.start({accept: data => analyser.update(data)});
 }
 
