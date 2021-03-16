@@ -1,10 +1,10 @@
-class QuadraticPeekInterpolator {
+export class QuadraticPeekInterpolator {
     interpolatePeek(l, c, r) {
         return 0.5 * ((l - r) / (l - 2 * c + r));
     }
 }
 
-class PeekFinder {
+export class PeekFinder {
 
     constructor(spread) {
         this.spread = spread;

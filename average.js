@@ -1,4 +1,7 @@
-function AverageBuffer(length) {
+import { CyclicBuffer } from "./cyclicBuffer.js";
+import { Transform } from "./transform.js";
+
+export function AverageBuffer(length) {
     const cyclicBuffer = new CyclicBuffer(length);
     let acc = 0;
     let fill = 0;
@@ -33,26 +36,33 @@ function AverageBuffer(length) {
     }
 }
 
-function MovingAverage(spread)  {
-    const avgLength = spread * 2 + 1;
-    const avgBuffer = new AverageBuffer(avgLength);
+export class MovingAverage extends Transform {
 
-    this.apply = function(data) {
-        avgBuffer.reset();
+    constructor(spread) {
+        super();
+        this._spread = spread;
+        this._avgBuffer = new AverageBuffer(spread * 2 + 1);
+    }
+
+    apply(data) {
+        this._avgBuffer.reset();
         const len = data.length;
 
-        for (let i = 0; i < spread; i++)
-            avgBuffer.putValue(data[i]);
+        for (let i = 0; i < this._spread; i++)
+        this._avgBuffer.putValue(data[i]);
 
-        for (let i = 0; i < len - spread; i++) {
-            avgBuffer.putValue(data[spread + i]);
-            data[i] = avgBuffer.average();
+        for (let i = 0; i < len - this._spread; i++) {
+            this._avgBuffer.putValue(data[this._spread + i]);
+            data[i] = this._avgBuffer.average();
         }
 
-        for (let i = 0; i < spread; i++) {
-            avgBuffer.removeFirst();
-            data[len - spread + i] = avgBuffer.average();
+        for (let i = 0; i < this._spread; i++) {
+            this._avgBuffer.removeFirst();
+            data[len - this._spread + i] = this._avgBuffer.average();
         }
     }
 }
 
+MovingAverage.create = function(n, params = {spread: 4}) {
+    return new MovingAverage(params.spread);
+}

@@ -1,6 +1,6 @@
-SQRT12 = 1.059463094359295264561825;
+const SQRT12 = 1.059463094359295264561825;
 
-class Note {
+export class Note {
     /**
      *
      * @param str

@@ -1,5 +1,6 @@
-class Window extends Transform {
+import { Transform } from "./transform.js";
 
+export class Window extends Transform {
     get size() {
         return this._size;
     }
@@ -26,7 +27,7 @@ class Window extends Transform {
     };
 }
 
-class HanningWindow extends Window {
+export class HanningWindow extends Window {
     constructor(N) {
         super(N);
     }
@@ -36,7 +37,11 @@ class HanningWindow extends Window {
     };
 }
 
-class GaussianWindow extends Window {
+HanningWindow.create = function(n, params = {}) {
+    return new HanningWindow(n);
+}
+
+export class GaussianWindow extends Window {
     constructor(N, sigma) {
         super(N);
         this.N = N;
@@ -47,4 +52,8 @@ class GaussianWindow extends Window {
         const ex = ((n - (this.N - 1) / 2) / (this.sigma * (this.N - 1) / 2));
         return Math.exp(-0.5 * (ex * ex));
     };
+}
+
+GaussianWindow.create = function(n, params = {sigma: 0.5}) {
+    return new GaussianWindow(n, params.sigma);
 }

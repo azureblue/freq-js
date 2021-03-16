@@ -1,4 +1,6 @@
-function NoteFinder() {
+import { Note } from "./music.js";
+
+export function NoteFinder() {
     this.minAdjacentHarmonicsNum = 3;
     this.minHarmonicsNum = 4;
     this.harmonicsToCheck = 7;

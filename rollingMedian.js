@@ -1,3 +1,4 @@
+import { Transform } from "./transform.js";
 /**
  * @license
  * Copyright Daniel Imms <http://www.growingwiththeweb.com>
@@ -299,47 +300,55 @@ function getBalanceState(node) {
     }
 }
 
+function CyclicBuffer(size, ArrayType = Array) {
+    const buffer = new ArrayType(size);
+    let position = 0;
 
-function RollingMedian(medianSpread) {
-    
-    function CyclicBuffer(size, ArrayType = Array) {
-        const buffer = new ArrayType(size);
-        let position = 0;
+    this.add = function (el) {
+        buffer[position] = el;
+        position = (position + 1) % size;
+    };
 
-        this.add = function (el) {
-            buffer[position] = el;
-            position = (position + 1) % size;
-        };
+    this.getFirst = function () {
+        return buffer[position];
+    };
+}
 
-        this.getFirst = function () {
-            return buffer[position];
-        };
+export class RollingMedian extends Transform {
+
+    constructor(spread) {
+        super();
+        this._spread = spread;
+        this._medianLength = spread * 2 + 1;
+        this._buffer = new CyclicBuffer(this._medianLength);
     }
-    const medianLength = medianSpread * 2 + 1;
-    const buffer = new CyclicBuffer(medianLength);
 
-    this.apply = function (arr) {
+    apply(data) {
         const tree = new AvlTree();
 
-        for (let i = 0; i < medianLength - 1; i++) {
-            const el = arr[i];
-            buffer.add(el);
+        for (let i = 0; i < this._medianLength - 1; i++) {
+            const el = data[i];
+            this._buffer.add(el);
             tree.insert(el);
-            if (i < medianSpread)
-                arr[i] = tree.selectKey(Math.floor(i / 2));
+            if (i < this._spread)
+                data[i] = tree.selectKey(Math.floor(i / 2));
         }
-        for (let i = medianSpread; i < arr.length - medianSpread; i++) {
-            const el = arr[i + medianSpread];
-            buffer.add(el);
-            tree.insert(arr[i + medianSpread]);
-            arr[i] = tree.selectKey(medianSpread);
-            tree.delete(buffer.getFirst());
+        for (let i = this._spread; i < data.length - this._spread; i++) {
+            const el = data[i + this._spread];
+            this._buffer.add(el);
+            tree.insert(data[i + this._spread]);
+            data[i] = tree.selectKey(this._spread);
+            tree.delete(this._buffer.getFirst());
         }
 
-        for (let i = arr.length - medianSpread; i < arr.length; i++) {
-            buffer.add(0);
-            arr[i] = tree.selectKey(Math.floor(tree.size() / 2));
-            tree.delete(buffer.getFirst());
+        for (let i = data.length - this._spread; i < data.length; i++) {
+            this._buffer.add(0);
+            data[i] = tree.selectKey(Math.floor(tree.size() / 2));
+            tree.delete(this._buffer.getFirst());
         }
     }
+}
+
+RollingMedian.create = function(n, params = {spread: 4}) {
+    return new RollingMedian(params.spread);
 }

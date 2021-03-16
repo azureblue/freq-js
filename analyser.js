@@ -1,14 +1,25 @@
-function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator) {
-    const fftTransform = new FFT(sampleSize);
-    const magData = new Float32Array(sampleSize);
-    const windowTransform = new GaussianWindow(sampleSize, 0.4);
-    const windowSum = windowTransform.sum;
-    const magAverage = new BuffersAverage(sampleSize, 3);
-    const logMag = new Float32Array(sampleSize / 2);
-    const noiseFloor = new Float32Array(sampleSize / 2);
+import { Transform } from "./transform.js"
+import { AverageBuffer, MovingAverage } from "./average.js";
+import { FFT } from "./fft.js";
+import { Note } from "./music.js";
+import { NoteFinder } from "./noteFinder.js";
+import { PeekFinder, QuadraticPeekInterpolator } from "./peeks.js";
+import { RollingMedian } from "./rollingMedian.js";
+import { BuffersAverage } from "./buffersAverage.js";
+import { GaussianWindow } from "./window.js";
+import { Pipeline } from "./pipeline.js";
+import { LogMagnitude } from "./logMagnitude.js";
 
-    const median = new RollingMedian(sampleSize / 512);
-    const longAvg = new MovingAverage(Math.round(sampleSize / 512));
+export function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator) {
+    const fftData = new Float32Array(sampleSize);
+    const noiseFloor = new Float32Array(sampleSize / 2);
+    const logMag = new Float32Array(sampleSize / 2);
+
+    const windowTransform = new GaussianWindow(sampleSize, 0.3);
+    const fftPipeline = new Pipeline([windowTransform, new FFT(sampleSize)]);
+    const logMagPipeline = new Pipeline([new BuffersAverage(sampleSize / 2, 2), new LogMagnitude(20, windowTransform.sum / 2)]);
+    const noiseFloorPipeline = new Pipeline([new RollingMedian(sampleSize / 512), new MovingAverage(Math.round(sampleSize / 512))]);
+
     const peekFinder = new PeekFinder(1);
     const peekInterpolator = new QuadraticPeekInterpolator();
     const notes = [];
@@ -32,21 +43,23 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
         return i * sampleRate / sampleSize;
     }
 
+    /**
+     *
+     * @param {Float32Array} waveData
+     */
     this.update = function (waveData) {
+        fftData.set(waveData);
         windowTransform.apply(waveData);
-        copyElements(waveData, magData);
-        fftTransform.apply(magData);
-        magAverage.apply(magData);
+        fftPipeline.apply(fftData);
+        logMag.set(fftData.subarray(0, sampleSize / 2));
+        logMagPipeline.apply(logMag);
         waveGraph.drawScales();
         waveGraph.plotData(wavexs, waveData);
         logFFTGraph.drawScales();
-        for (let i = 0; i < sampleSize / 2; i++)
-            logMag[i] = 20 * Math.log10(magData[i] / (windowSum / 2));
         logFFTGraph.plotData(wavefftxs, logMag);
-        copyElements(logMag, noiseFloor);
-        median.apply(noiseFloor);
-        longAvg.apply(noiseFloor);
-        transformInPlace(noiseFloor, v => v + 0.002);
+        noiseFloor.set(logMag);
+        noiseFloorPipeline.apply(noiseFloor);
+        Transform.transform(noiseFloor, v => v + 0.002);
         logFFTGraph.plotData(wavefftxs, noiseFloor);
         const peeks = [];
         peekFinder.forEachPeek(logMag, peek => {

@@ -1,5 +1,6 @@
-function CyclicBuffer(size, arrayType = Float32Array) {
-    const buffer = new arrayType(size);
+export function CyclicBuffer(size, ArrayType = Float32Array) {
+    const buffer = new ArrayType(size);
+    this.buffer = buffer;
     let start = 0;
     let currentSize = 0;
 
@@ -7,10 +8,28 @@ function CyclicBuffer(size, arrayType = Float32Array) {
         if (currentSize === size) {
             buffer[start] = el;
             start = (start + 1) % size;
+            return true;
         }
-        else
-            buffer[(start + currentSize++) % size] = el;
+
+        buffer[(start + currentSize++) % size] = el;
+        return false;
+
     };
+
+    this.fill = function(value) {
+        while(currentSize < size)
+            this.add(value);
+    }
+
+    /**
+     * @param {TypedArray} data
+     */
+    this.addAll = function(data) {
+        let overflow = false;
+        for (let i = 0; i < data.length; i++)
+            overflow |= this.add(data[i]);
+        return overflow;
+    }
 
     this.getFirst = function() {
         if (currentSize === 0)
@@ -32,12 +51,31 @@ function CyclicBuffer(size, arrayType = Float32Array) {
         currentSize = 0;
     };
 
-    this.writeTo = function(dst) {
-        let dstPos = 0;
-        for (let p = end; p < size; p++)
-            dst[dstPos++] = buffer[p];
+    /**
+     * @param {TypedArray} outputArray
+     * @param {number} n
+     */
+    this.remove = function(n, outputArray) {
+        if (outputArray != undefined) {
+            for (let i = 0; i < n; i++)
+                outputArray[i] = this.removeFirst();
+        } else {
+            for (let i = 0; i < n; i++)
+                this.removeFirst();
+        }
+    }
 
-        for (let i = 0; i < end; i++)
-            dst[dstPos++] = buffer[i];
+    this.output = function(outputArray) {
+        for (let i = 0; i < currentSize; i++) {
+            outputArray[i] = buffer[(start + i) % size];
+        }
+    }
+
+    this.getSize = function() {
+        return currentSize;
+    }
+
+    this.getCapacity = function() {
+        return size;
     }
 }
