@@ -47,6 +47,12 @@ export class AxisTicks {
         /** @type {Array<number>} */
         this.keyValues = keyValues;
     }
+
+    add(value, label) {
+        this.values.push(value);
+        this.labels.push(label);
+        return this;
+    }
 }
 
 export const AxisTicksGenerator = {
@@ -56,6 +62,10 @@ export const AxisTicksGenerator = {
                 yield from;
         }()];
     },
+
+    useKPrefix: /**@param {number} value*/ value =>
+        value < 1000 ? "" + value : "" + (value / 1000).toFixed(1) + "k",
+
     /**
      *
      * @param {number} from
@@ -151,140 +161,5 @@ export class NoteIndicator extends GraphBase {
         ctx.fillText(centDiffLabel, this.width / 2 - ctx.measureText(centDiffLabel).width / 2, textHeight * 3);
         ctx.fillRect(this.width / 2, textHeight * 4, centDiff / 50 * this.width / 2, this.height - textHeight * 5);
         ctx.restore();
-    }
-}
-
-export class Graph extends GraphBase {
-    /**
-     * @param {HTMLCanvasElement} canvas
-     * @param {GraphScale} xscale
-     * @param {GraphScale} yscale
-     * @param {AxisTicks} xticks
-     * @param {AxisTicks} yticks
-     */
-    constructor(canvas, xscale, yscale, xticks, yticks) {
-        super(canvas);
-
-        let prepareCtx = () => {
-            ctx.strokeStyle = this.gridStyle;
-            ctx.font = this.font;
-        };
-
-        this.font = '0.9rem sans-serif';
-        this.gridWidth = 1;
-        this.gridStyle = 'rgb(200, 200, 200)';
-        this.gridKeyStyle = 'rgb(150, 150, 150)';
-        this.plotStyle = 'rgb(100, 100, 100)';
-        this.labelMargin = 4;
-        this.margin = 2;
-
-        const ctx = this.ctx;
-        const measureWidth = text => ctx.measureText("" + text).width;
-        //noinspection JSSuspiciousNameCombination
-        prepareCtx();
-        const textHeight = ctx.measureText("#").width;
-        const maxYLabelWidth = Math.max(...(yticks.labels).map(measureWidth));
-        const maxXLabelWidth = Math.max(...(xticks.labels).map(measureWidth));
-        const graphXPadding = maxYLabelWidth + this.labelMargin * 2;
-        const graphYPadding = textHeight * 2 + this.labelMargin * 2;
-        let graphRect = { x: 0, y: 0, width: 0, height: 0 };
-        let xpos = xv => Math.round(xscale.normalize(xv) * graphRect.width);
-        let ypos = yv => Math.round(graphRect.height - yscale.normalize(yv) * graphRect.height);
-        const xKeyTicks = new Set();
-        const yKeyTicks = new Set();
-        xticks.keyValues.forEach(t => xKeyTicks.add(t));
-        yticks.keyValues.forEach(t => yKeyTicks.add(t));
-
-        let updateGraphRect = () => {
-            graphRect.x = this.margin + graphXPadding;
-            graphRect.y = this.margin + this.labelMargin + textHeight / 2;
-            graphRect.width = this.width - graphXPadding - this.margin * 2;
-            graphRect.height = this.height - graphYPadding - this.margin * 2;
-        };
-
-        this.drawScales = function () {
-            this.updateSizeAndClean();
-            updateGraphRect();
-            ctx.save();
-            prepareCtx();
-            ctx.translate(graphRect.x, graphRect.y);
-
-            yticks.values.forEach((v, idx) => {
-                ctx.beginPath();
-                const label = yticks.labels[idx];
-                let labWidth = measureWidth(label);
-                let y = ypos(v);
-                if (yKeyTicks.has(v)) {
-                    ctx.strokeStyle = this.gridKeyStyle;
-                } else {
-                    ctx.strokeStyle = this.gridStyle;
-                }
-                ctx.moveTo(0, y);
-                ctx.lineTo(graphRect.width, y);
-                ctx.fillText(label, -labWidth - this.labelMargin, y + textHeight / 2);
-                ctx.stroke();
-            });
-
-            let lastEnd = -1000;
-
-            xticks.values.forEach((v, idx) => {
-                ctx.beginPath();
-                const label = xticks.labels[idx];
-                let labWidth = measureWidth(label);
-                let x = xpos(v);
-                if (xKeyTicks.has(v)) {
-                    ctx.strokeStyle = this.gridKeyStyle;
-                } else {
-                    ctx.strokeStyle = this.gridStyle;
-                }
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, graphRect.height);
-                let labelStartX = x - labWidth / 2;
-                if (labelStartX - lastEnd > 5) {
-                    ctx.fillText(label, labelStartX, graphRect.height + textHeight + this.labelMargin);
-                    lastEnd = labelStartX + labWidth;
-                }
-                ctx.stroke();
-            });
-
-            ctx.restore();
-        };
-
-        this.plotData = function (xs, ys) {
-            let len = xs.length;
-            ctx.save();
-            prepareCtx();
-            ctx.strokeStyle = this.plotStyle;
-            ctx.translate(graphRect.x, graphRect.y);
-            ctx.beginPath();
-            ctx.rect(0, 0, graphRect.width, graphRect.height);
-            ctx.clip();
-            ctx.beginPath();
-            ctx.moveTo(xpos(xs[0]), ypos(ys[0]));
-            for (let i = 1; i < len; i++)
-                ctx.lineTo(xpos(xs[i]), ypos(ys[i]));
-            ctx.stroke();
-            ctx.restore();
-        };
-
-        this.plotVerticalLine = function (x, label) {
-            let xp = xpos(x);
-            if (xp < 0 || xp > graphRect.width)
-                return;
-            ctx.save();
-            prepareCtx();
-            let lw = measureWidth(label);
-            ctx.translate(graphRect.x, graphRect.y);
-            ctx.beginPath();
-            ctx.moveTo(xp, lw);
-            ctx.lineTo(xp, graphRect.height);
-            ctx.stroke();
-            if (label !== undefined) {
-                ctx.translate(xp, 0);
-                ctx.rotate(Math.PI / 2);
-                ctx.fillText(label, 1, textHeight / 2);
-            }
-            ctx.restore();
-        };
     }
 }

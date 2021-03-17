@@ -75,6 +75,10 @@ export function CyclicBuffer(size, ArrayType = Float32Array) {
         return currentSize;
     }
 
+    this.isFull = function() {
+        return currentSize == size;
+    }
+
     this.getCapacity = function() {
         return size;
     }

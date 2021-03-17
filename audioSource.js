@@ -59,7 +59,7 @@ export class UserAudioDataSource {
     startTest(audioDataConsumer, frequencies) {
         this._init_processor(audioDataConsumer);
         let gainNode = this._audioContext.createGain();
-        gainNode.gain.value = 0.3;
+        gainNode.gain.value = 1 / frequencies.length;
 
         frequencies.map(fr => {
             let oscillator = this._audioContext.createOscillator();
@@ -70,7 +70,6 @@ export class UserAudioDataSource {
         })
         gainNode.connect(this._processor);
         this._processor.connect(this._audioContext.destination);
-
     }
 
     /**
@@ -96,75 +95,36 @@ export class OverlappingDataSource extends AudioDataConsumer {
 
     /**
      * @param {number} sampleRate
-     * @param {number} sampleSize
-     * @param {number} windowStep
+     * @param {number} sourceSampleSize
+     * @param {number} outputSampleSize
      */
-    constructor(sampleRate, sampleSize, windowStep) {
+    constructor(sampleRate, sourceSampleSize, outputSampleSize) {
         super();
         this._sampleRate = sampleRate;
-        this._sampleSize = sampleSize;
-        this._windowStep = windowStep;
+        this._sampleSize = sourceSampleSize;
+        this._outputSampleSize = outputSampleSize;
         this._consumer = null;
-        this._outputBuffer = new CyclicBuffer(sampleSize);
-        this._inputBuffer = new CyclicBuffer(sampleSize * 2);
-        this._outputFrameTime = windowStep * 1000 / sampleRate;
-        console.debug("moving window step: " + windowStep + " samples");
-        console.debug("moving window frame time: " + this._outputFrameTime + "ms");
-        this._lastInputTime = 0;
-        this._lastOutputTime = 0;
+        this._outputBuffer = new CyclicBuffer(outputSampleSize);
+        console.debug("overlapping window:" + this._outputSampleSize + " / " + this._sampleSize);
         this._outputBuffer.fill(0);
-        this._output = new Float32Array(sampleSize);
-        this._overlapBuffer = new Float32Array(this._windowStep);
+        this._output = new Float32Array(outputSampleSize);
     }
-    _update() {
-        let lastFrame = this._lastOutputTime;
-        const outputFrameTimeAdjusted = this._outputFrameTime * 0.9;
-        let currentTime = Date.now();
-        if (lastFrame == 0)
-            lastFrame = currentTime - outputFrameTimeAdjusted * 2;
-        if (currentTime - lastFrame >= outputFrameTimeAdjusted) {
-            this._lastOutputTime = currentTime;
-            if (this._inputBuffer.getSize() < this._windowStep) {
-            } else {
-                let skip = -1;
-                while (Date.now() - lastFrame >= outputFrameTimeAdjusted && this._inputBuffer.getSize() >= this._windowStep) {
-                    lastFrame += outputFrameTimeAdjusted;
-                    skip++;
-                    this._outputBuffer.remove(this._windowStep);
-                    this._inputBuffer.remove(this._windowStep, this._overlapBuffer);
-                    this._outputBuffer.addAll(this._overlapBuffer);
-                }
-                // if (skip > 0) {
-                //     console.debug("skipped " + skip + " frames")
-                // }
-                this._outputBuffer.output(this._output);
-                this._consumer.accept(this._output);
-            }
-        }
-        window.requestAnimationFrame(this._update.bind(this));
-    }
-
-
     /**
      *
      * @param {Float32Array} data
      */
     accept(data) {
-        if (this._inputBuffer.addAll(data)) {
-            console.warn("overflow");
-        }
-
-        if (this._inputBuffer.getCapacity() - this._inputBuffer.getSize() < (this._sampleSize)) {
-            this._lastOutputTime = 0;
+        this._outputBuffer.addAll(data);
+        if (this._outputBuffer.isFull()) {
+            this._outputBuffer.output(this._output);
+            this._consumer.accept(this._output);
         }
     }
 
     /**
      * @param {AudioDataConsumer} audioDataConsumer
      */
-    start(audioDataConsumer) {
+    setConsumer(audioDataConsumer) {
         this._consumer = audioDataConsumer;
-        window.requestAnimationFrame(this._update.bind(this));
     }
-
 }

@@ -1,0 +1,40 @@
+.overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.splash {
+    background-color: rgba(0, 0, 0, 0.137);
+    z-index: 10;
+}
+
+div.button {
+    margin: 0.2rem;
+    padding: 0.4rem;
+    cursor: pointer;
+}
+
+#start-button {
+    font-family: sans-serif;
+    font-size: 4rem;
+    transition-duration: 1s;
+}
+
+#start-button:hover {
+    background-color: rgb(43, 226, 119);
+    transition-duration: 1s;
+}
+
+.center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: table;
+    /* transform: none; */
+    width: auto;
+    height: auto;
+}

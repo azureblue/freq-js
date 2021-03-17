@@ -1,18 +1,9 @@
 <html>
-
 <head>
     <title>js-freq</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * {
-            border: 0;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            position: absolute;
-        }
-
         #ul,
         #ur,
         #lr {
@@ -32,53 +23,13 @@
             left: 50%;
         }
 
-        .overlay {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100vw;
-            height: 100vh;
-        }
-        .splash {
-            background-color: rgba(0, 0, 0, 0.137);
-            z-index: 10;
-        }
-
-        div.button {
-            margin: 0.2rem;
-            padding: 0.4rem;
-            cursor: pointer;
-        }
-
-        #start {
-            font-family: sans-serif;
-            font-size: 4rem;
-            transition-duration: 1s;
-        }
-
-        .button:hover {
-            background-color: rgb(43, 226, 119);
-            transition-duration: 1s;
-        }
-
-        .center {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            display: table;
-            /* transform: none; */
-            width: auto;
-            height: auto;
-
-        }
     </style>
+    <link rel="preload" href="https://fonts.gstatic.com/s/oswald/v36/TK3_WkUHHAIjg75cFRf3bXL8LICs1_FvsUZiZQ.woff2" as="font" crossorigin="anonymous" />
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/graph.css">
 </head>
 
 <body>
-    <div id="start-overlay" class="overlay splash">
-        <div id="start" class="button center">START</div>
-    </div>
     <canvas id="ul"></canvas>
     <!-- <canvas id="ll"></canvas> -->
     <canvas id="ur"></canvas>
