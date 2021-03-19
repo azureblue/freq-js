@@ -5,11 +5,13 @@
 export function measureText(ctx, text) {
     let metrics = ctx.measureText(text);
     const width = Math.abs(metrics.actualBoundingBoxLeft) + Math.abs(metrics.actualBoundingBoxRight);
-    const height = Math.abs(metrics.actualBoundingBoxAscent) + Math.abs(metrics.actualBoundingBoxDescent);
+    const height = Math.abs(metrics.actualBoundingBoxAscent);
 
     return {
         width: width,
-        height: height
+        height: height,
+        halfWidth: width / 2,
+        halfHeight: height / 2
     };
 }
 

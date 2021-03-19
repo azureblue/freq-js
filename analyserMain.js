@@ -31,13 +31,17 @@ AxisTicksGenerator.generateLog10ScaleTicks(40, 8000, AxisTicksGenerator.useKPref
 // AxisTicksGenerator.generateLinearTicks(0, 5000, 100, [1000, 2000, 3000, 4000, 5000], AxisTicksGenerator.useKPrefix),
 AxisTicksGenerator.generateLinearTicks(-140, 0, 20, []));
 
-const analyser = new Analyser(sampleSize, sampleRate, graph);
+const analyser = new Analyser(sampleSize, sampleRate, [40, 8000], graph);
 
 startWithOverlay(() => {
     let getParams = createGetParamsMap();
-    overlapper.setConsumer({accept: data => analyser.update(data)})
+    let requestedFrame = -1;
+    overlapper.setConsumer({accept: data => {
+        window.cancelAnimationFrame(requestedFrame);
+        requestedFrame = window.requestAnimationFrame(() => analyser.update(data))
+    }});
     if (getParams.has("test")) {
-        audioSource.startTest(overlapper, [47, 70, 100, 220, 502, 915.5]);
+        audioSource.startTest(overlapper, [45, 74, 100, 150.4, 220, 502, 915.5]);
     } else {
          audioSource.start(overlapper);
     }

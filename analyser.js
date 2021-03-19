@@ -3,14 +3,21 @@ import { AverageBuffer, MovingAverage } from "./average.js";
 import { FFT } from "./fft.js";
 import { Note } from "./music.js";
 import { NoteFinder } from "./noteFinder.js";
-import { PeekFinder, QuadraticPeekInterpolator } from "./peeks.js";
+import { FrequencyPeeksFilter, PeekFinder, QuadraticPeekInterpolator } from "./peeks.js";
 import { RollingMedian } from "./rollingMedian.js";
 import { BuffersAverage } from "./buffersAverage.js";
 import { GaussianWindow } from "./window.js";
 import { Pipeline } from "./pipeline.js";
 import { LogMagnitude } from "./logMagnitude.js";
+import { Graph } from "./analyserGraph.js";
 
-export function Analyser(sampleSize, sampleRate, logFFTGraph) {
+/**
+ * @param {number} sampleSize
+ * @param {number} sampleRate
+ * @param {Array<number>} frequencyRange
+ * @param {Graph} logFFTGraph
+ */
+export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
     const fftData = new Float32Array(sampleSize);
     const noiseFloor = new Float32Array(sampleSize / 2);
     const logMag = new Float32Array(sampleSize / 2);
@@ -26,14 +33,24 @@ export function Analyser(sampleSize, sampleRate, logFFTGraph) {
         wavefftxs[i] = i * sampleRate / sampleSize;
 
     const peekFinder = new PeekFinder(1);
+    const peekFreqFilter = new FrequencyPeeksFilter();
     const peekInterpolator = new QuadraticPeekInterpolator();
     const notes = [];
     for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.add(1))
         notes.push(note);
+
     const noteFinder = new NoteFinder();
     const noteFinderSmoother = new AverageBuffer(5);
     const peekHeight = 15;
 
+    /**
+     * @param {numer} freq
+     * @returns {Note}
+     */
+    function findClosestNote(freq) {
+        return notes.reduce((/**@type {Note}*/a, /**@type {Note}*/b) => (Math.abs(a.frequency() - freq) < Math.abs(b.frequency() - freq)
+            ? a : b));
+    }
     function binToFreq(i) {
         return i * sampleRate / sampleSize;
     }
@@ -42,7 +59,6 @@ export function Analyser(sampleSize, sampleRate, logFFTGraph) {
      */
     this.update = function (waveData) {
         fftData.set(waveData);
-        windowTransform.apply(waveData);
         fftPipeline.apply(fftData);
         logMag.set(fftData.subarray(0, sampleSize / 2));
         logMagPipeline.apply(logMag);
@@ -51,15 +67,32 @@ export function Analyser(sampleSize, sampleRate, logFFTGraph) {
         noiseFloor.set(logMag);
         noiseFloorPipeline.apply(noiseFloor);
         Transform.transform(noiseFloor, v => v + 0.002);
-        logFFTGraph.plotData(wavefftxs, noiseFloor);
+        logFFTGraph.plotData(wavefftxs, noiseFloor, new Graph.LineStyle(2.5, "rgba(50, 84, 200, 0.5)"));
         const peeks = [];
-        peekFinder.forEachPeek(logMag, peek => {
-            if (logMag[peek] - noiseFloor[peek] - peekHeight < 0)
+        peekFreqFilter.reset();
+
+        peekFinder.forEachPeek(logMag, (bin, value) => {
+            if (logMag[bin] - noiseFloor[bin] - peekHeight < 0)
                 return;
 
-            const ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
-            const peekFreq = binToFreq(peek + ip);
-            logFFTGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
+            const ip = peekInterpolator.interpolatePeek(logMag[bin - 1], logMag[bin], logMag[bin + 1]);
+            const peekFreq = binToFreq(bin + ip);
+
+            peekFreqFilter.handlePeek(peekFreq, value);
+        });
+
+        peekFreqFilter.forEachPeek((peekFreq) => {
+            if (peekFreq > frequencyRange[1] || peekFreq < frequencyRange[0])
+                return;
+            // logFFTGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
+            let note = findClosestNote(peekFreq);
+            let centInterval = Math.round(Note.intervalInCents(note.frequency(), peekFreq.toFixed(1)));
+            logFFTGraph.plotVerticalLine(new Graph.VerticalLine(peekFreq,
+                [
+                    new Graph.Label(peekFreq.toFixed(1), true),
+                    new Graph.Label("" + note.name, false, Graph.Label.Placement.RIGHT),
+                    new Graph.Label(centInterval > 0 ? "+" + centInterval : centInterval, false, Graph.Label.Placement.RIGHT),
+                ]));
             peeks.push(peekFreq);
         });
     }

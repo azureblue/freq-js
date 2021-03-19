@@ -16,22 +16,18 @@ export class Graph extends GraphBase {
         this.style = cloneObjectShallow(Graph.defaultStyle);
         overrideProperties(this.style, style);
 
-        let prepareCtx = () => {
-            ctx.strokeStyle = this.style.gridStyle;
-            ctx.font = this.style.font;
-        };
-
         const ctx = this.ctx;
         const measureWidth = text => ctx.measureText("" + text).width;
         //noinspection JSSuspiciousNameCombination
-        prepareCtx();
+
+        this.style.textStyle.apply(ctx);
 
         const measure = measureText(ctx, "#");
         const textHeight = measure.height;
         const maxYLabelWidth = Math.max(...(yticks.labels).map(measureWidth));
         const maxXLabelWidth = Math.max(...(xticks.labels).map(measureWidth));
-        const graphXPadding = maxYLabelWidth + this.style.labelMargin * 2;
-        const graphYPadding = textHeight * 2 + this.style.labelMargin * 2;
+        const graphXPadding = maxYLabelWidth + this.style.tickLabelsMargin * 2;
+        const graphYPadding = textHeight * 2 + this.style.tickLabelsMargin * 2;
         let graphRect = { x: 0, y: 0, width: 0, height: 0 };
         let xpos = xv => Math.round(xscale.normalize(xv) * graphRect.width);
         let ypos = yv => Math.round(graphRect.height - yscale.normalize(yv) * graphRect.height);
@@ -40,13 +36,13 @@ export class Graph extends GraphBase {
         xticks.keyValues.forEach(t => xKeyTicks.add(t));
         yticks.keyValues.forEach(t => yKeyTicks.add(t));
 
-        let x = {value: 123, label: xticks.labels[2]};
-        const xTicksWithLabel = xticks.values.map((v, i) => ({value: v, label: xticks.labels[i]}));
-        const yTicksWithLabel = xticks.values.map((v, i) => ({value: v, label: xticks.labels[i]}));
+        let x = { value: 123, label: xticks.labels[2] };
+        const xTicksWithLabel = xticks.values.map((v, i) => ({ value: v, label: xticks.labels[i] }));
+        const yTicksWithLabel = xticks.values.map((v, i) => ({ value: v, label: xticks.labels[i] }));
 
         let updateGraphRect = () => {
             graphRect.x = this.style.margin + graphXPadding;
-            graphRect.y = this.style.margin + this.style.labelMargin + textHeight / 2;
+            graphRect.y = this.style.margin + this.style.tickLabelsMargin + textHeight / 2;
             graphRect.width = this.width - graphXPadding - this.style.margin * 2;
             graphRect.height = this.height - graphYPadding - this.style.margin * 2;
         };
@@ -55,13 +51,12 @@ export class Graph extends GraphBase {
             this.updateSizeAndClean();
             updateGraphRect();
             ctx.save();
-            prepareCtx();
             ctx.translate(graphRect.x, graphRect.y);
 
             ctx.save();
             //graph border
             ctx.beginPath();
-            ctx.strokeStyle = this.style.gridKeyStyle;
+            this.style.gridKeyStyle.apply(ctx);
             ctx.rect(0, 0, graphRect.width, graphRect.height);
             ctx.stroke();
 
@@ -77,11 +72,9 @@ export class Graph extends GraphBase {
                 ctx.beginPath();
                 let y = ypos(v);
                 if (yKeyTicks.has(v)) {
-                    ctx.strokeStyle = this.style.gridKeyStyle;
-                    ctx.lineWidth = this.style.gridKeyWidth;
+                    this.style.gridKeyStyle.apply(ctx);
                 } else {
-                    ctx.strokeStyle = this.style.gridStyle;
-                    ctx.lineWidth = this.style.gridWidth;
+                    this.style.gridStyle.apply(ctx);
                 }
                 ctx.moveTo(0, y);
                 ctx.lineTo(graphRect.width, y);
@@ -94,11 +87,9 @@ export class Graph extends GraphBase {
                 ctx.beginPath();
                 let x = xpos(v);
                 if (xKeyTicks.has(v)) {
-                    ctx.strokeStyle = this.style.gridKeyStyle;
-                    ctx.lineWidth = this.style.gridKeyWidth;
+                    this.style.gridKeyStyle.apply(ctx);
                 } else {
-                    ctx.strokeStyle = this.style.gridStyle;
-                    ctx.lineWidth = this.style.gridWidth;
+                    this.style.gridStyle.apply(ctx);
                 }
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, graphRect.height);
@@ -106,7 +97,7 @@ export class Graph extends GraphBase {
             });
 
             ctx.restore();
-
+            this.style.textStyle.apply(ctx);
             yticks.values.forEach((v, idx) => {
                 if (v < yscale.min || v > yscale.max)
                     return;
@@ -115,11 +106,11 @@ export class Graph extends GraphBase {
                 let labWidth = measureWidth(label);
                 let y = ypos(v);
                 if (yKeyTicks.has(v)) {
-                    ctx.strokeStyle = this.style.gridKeyStyle;
+                    this.style.gridKeyStyle.apply(ctx);
                 } else {
-                    ctx.strokeStyle = this.style.gridStyle;
+                    this.style.gridStyle.apply(ctx);
                 }
-                ctx.fillText(label, -labWidth - this.style.labelMargin, y + textHeight / 2);
+                ctx.fillText(label, -labWidth - this.style.tickLabelsMargin, y + textHeight / 2);
                 ctx.stroke();
             });
 
@@ -144,7 +135,7 @@ export class Graph extends GraphBase {
 
                 let labelRect = new Rect(
                     x - textMeasure.width / 2,
-                    graphRect.height + textMeasure.height + this.style.labelMargin,
+                    graphRect.height + textMeasure.height + this.style.tickLabelsMargin,
                     textMeasure.width,
                     textMeasure.height
                 );
@@ -160,12 +151,16 @@ export class Graph extends GraphBase {
             ctx.restore();
         };
 
-        this.plotData = function (xs, ys) {
+        /**
+         *
+         * @param {Array<Number>} xs - X coordinates
+         * @param {Array<Number>} ys - Y coordinates
+         * @param {Graph.LineStyle} lineStyle
+         */
+        this.plotData = function (xs, ys, lineStyle = Graph.defaultStyle.plotStyle) {
             let len = xs.length;
             ctx.save();
-            prepareCtx();
-            ctx.strokeStyle = this.style.defaultPlotStyle;
-            ctx.lineWidth = this.style.defaultPlotLineWidth;
+            lineStyle.apply(ctx);
             ctx.lineJoin = "round";
             ctx.translate(graphRect.x, graphRect.y);
             ctx.beginPath();
@@ -179,54 +174,192 @@ export class Graph extends GraphBase {
             ctx.restore();
         };
 
-        this.plotVerticalLine = function (x, label) {
-            let xp = xpos(x);
+        /**
+         *
+         * @param {number} xMid
+         * @param {number} yTop
+         * @param {Label} label
+         * @returns {number}
+         */
+        this.drawLabel = function(xMid, yTop, label) {
+            ctx.save();
+            label.applyStyleAndUpdateMetrics(ctx);
+            if (label.placement == Graph.Label.Placement.LEFT)
+                xMid = xMid - label.metrics.halfWidth - this.style.labelSeparation;
+            else if (label.placement == Graph.Label.Placement.RIGHT)
+                xMid = xMid + label.metrics.halfWidth + this.style.labelSeparation;
+
+            ctx.translate(xMid, yTop);
+
+            if (label.vertical) {
+                ctx.rotate(Math.PI / 2);
+                ctx.fillText(label.text, 0, label.metrics.halfHeight);
+                yTop += label.metrics.width;
+            } else {
+                ctx.fillText(label.text, -label.metrics.halfWidth, label.metrics.height);
+                yTop += label.metrics.height;
+            }
+            ctx.restore();
+            return yTop;
+        }
+
+        /**
+         * @param {Graph.VerticalLine} verticalLine
+         */
+        this.plotVerticalLine = function (verticalLine) {
+            let xp = xpos(verticalLine.x);
             if (xp < 0 || xp > graphRect.width)
                 return;
             ctx.save();
-            prepareCtx();
-            let lw = measureWidth(label);
             ctx.translate(graphRect.x, graphRect.y);
+
+            let currentY = this.style.labelSeparation;
+            verticalLine.topLabels.forEach(lab => {
+                currentY = this.drawLabel(xp, currentY, lab) + this.style.labelSeparation;
+            });
+
             ctx.beginPath();
-            ctx.moveTo(xp, lw);
+            ctx.moveTo(xp, currentY);
             ctx.lineTo(xp, graphRect.height);
             ctx.stroke();
-            if (label !== undefined) {
-                ctx.translate(xp, 0);
-                ctx.rotate(Math.PI / 2);
-                ctx.fillText(label, 1, textHeight / 2);
-            }
+
+            let currentYLR = currentY;
+            verticalLine.leftLabels.forEach(lab => {
+                currentYLR = this.drawLabel(xp, currentYLR, lab) + this.style.labelSeparation;
+            });
+
+            currentYLR = currentY;
+            verticalLine.rightLabels.forEach(lab => {
+                currentYLR = this.drawLabel(xp, currentYLR, lab) + this.style.labelSeparation;
+            });
             ctx.restore();
         };
     }
 }
 
+
+Graph.VerticalLine = class {
+    /**
+     * @param {number} x
+     * @param {Array<Graph.Label>} labels
+     * @param {Graph.TextStyle} lineStyle
+     */
+    constructor(x, labels, lineStyle = Graph.defaultStyle.plotStyle) {
+        this.x = x;
+        this.lineStyle = lineStyle;
+        this.topLabels = labels.filter(lab => lab.placement == Graph.Label.Placement.TOP);
+        this.leftLabels = labels.filter(lab => lab.placement == Graph.Label.Placement.LEFT);
+        this.rightLabels = labels.filter(lab => lab.placement == Graph.Label.Placement.RIGHT);
+    }
+}
+
+/**
+ * @typedef {Graph.Label} Label
+ */
+
+Graph.Label = class {
+    constructor(
+        text,
+        vertical = false,
+        placement = Graph.Label.Placement.TOP,
+        textStyle = Graph.defaultStyle.textStyle) {
+
+        this.text = text;
+        this.vertical = vertical;
+        this.placement = placement;
+        this.textStyle = textStyle;
+        this.metrics = null;
+    }
+    /**
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {boolean} force
+     */
+    updateMetrics(ctx, force = false) {
+        if (this.metrics == null || force) {
+            ctx.save();
+            this.textStyle.apply(ctx);
+            this.metrics = measureText(ctx, this.text);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    applyStyleAndUpdateMetrics(ctx) {
+        this.textStyle.apply(ctx);
+        this.metrics = measureText(ctx, this.text);
+    }
+}
+
+/**
+ * @typedef {Graph.Label.Placement} Placement
+ */
+
+/**
+* @enum {Symbol}
+*/
+Graph.Label.Placement = Object.freeze({
+    TOP: Symbol(),
+    LEFT: Symbol(),
+    RIGHT: Symbol()
+});
+
+Graph.TextStyle = class {
+    constructor(font, style) {
+        this.font = font;
+        this.style = style;
+    }
+
+    /**
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    apply(ctx) {
+        ctx.fillStyle = this.style;
+        ctx.font = this.font;
+    }
+}
+
+Graph.LineStyle = class {
+    constructor(width, style) {
+        this.width = width;
+        this.style = style;
+    }
+
+    /**
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    apply(ctx) {
+        ctx.strokeStyle = this.style;
+        ctx.lineWidth = this.width;
+    }
+}
+
+
 /** *
  * @typedef {Object} GraphStyle
- * @property {string} font
- * @property {number} gridWidth
- * @property {string} gridStyle
- * @property {number} gridKeyWidth
- * @property {string} gridKeyStyle
- * @property {number} defaultPlotLineWidth
- * @property {string} defaultPlotStyle
+ * @property {Graph.TextStyle} textStyle
+ * @property {Graph.LineStyle} gridStyle
+ * @property {Graph.LineStyle} gridKeyStyle
+ * @property {Graph.LineStyle} plotStyle
  * @property {number} margin
- * @property {number} labelMargin
+ * @property {number} tickLabelsMargin
+ * @property {number} labelSeparation
+ * @property {boolean} removeClippedTicks
  */
+
 
 /**
  * @type {GraphStyle}
  */
 Graph.defaultStyle = {
-    font: '1rem Oswald',
-    gridWidth: 1,
-    gridStyle: 'rgb(200, 200, 200)',
-    gridKeyWidth: 1.5,
-    gridKeyStyle: 'rgb(150, 150, 150)',
-    defaultPlotLineWidth: 1.5,
-    defaultPlotStyle: 'rgb(100, 100, 100)',
+    textStyle: new Graph.TextStyle('1rem Oswald', "rgb(40, 40, 40)"),
+    gridStyle: new Graph.LineStyle(1, 'rgb(200, 200, 200)'),
+    gridKeyStyle: new Graph.LineStyle(1.5, 'rgb(150, 150, 150)'),
+    plotStyle: new Graph.LineStyle(1.5, 'rgb(100, 100, 100)'),
     margin: 2,
-    labelMargin: 8,
+    tickLabelsMargin: 8,
+    labelSeparation: 4,
     removeClippedTicks: true
 };
 
