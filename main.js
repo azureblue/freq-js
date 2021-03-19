@@ -58,7 +58,7 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
     const peekFinder = new PeekFinder(1);
     const peekInterpolator = new QuadraticPeekInterpolator();
     const notes = [];
-    for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.add(1))
+    for (let note = Note.parse('C1'), limit = Note.parse('C8'); note.midiNumber <= limit.midiNumber; note = note.add(1))
         notes.push(note);
     const noteFinder = new NoteFinder();
     const noteFinderSmoother = new AverageBuffer(5);
@@ -103,7 +103,7 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
 
             const ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
             const peekFreq = binToFreq(peek + ip);
-            logFFTGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
+            logFFTGraph.plotVerticalLine(new Graph.VerticalLine(peekFreq, [new Graph.Label(peekFreq.toFixed(1), true)]));
             peeks.push(peekFreq);
         });
         let res = noteFinder.findBestNote(peeks, notes);

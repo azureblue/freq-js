@@ -36,7 +36,7 @@ export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
     const peekFreqFilter = new FrequencyPeeksFilter();
     const peekInterpolator = new QuadraticPeekInterpolator();
     const notes = [];
-    for (let note = Note.parse('C1'), limit = Note.parse('C7'); note.midiNumber < limit.midiNumber; note = note.add(1))
+    for (let note = Note.parse('C1'), limit = Note.parse('C8'); note.midiNumber <= limit.midiNumber; note = note.add(1))
         notes.push(note);
 
     const noteFinder = new NoteFinder();
@@ -87,11 +87,15 @@ export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
             // logFFTGraph.plotVerticalLine(peekFreq, peekFreq.toFixed(1));
             let note = findClosestNote(peekFreq);
             let centInterval = Math.round(Note.intervalInCents(note.frequency(), peekFreq.toFixed(1)));
+            if (centInterval >= 100)
+                return;
             logFFTGraph.plotVerticalLine(new Graph.VerticalLine(peekFreq,
                 [
-                    new Graph.Label(peekFreq.toFixed(1), true),
-                    new Graph.Label("" + note.name, false, Graph.Label.Placement.RIGHT),
-                    new Graph.Label(centInterval > 0 ? "+" + centInterval : centInterval, false, Graph.Label.Placement.RIGHT),
+                    new Graph.Label("" + note.name, false),
+                    new Graph.Label(centInterval > 0 ? "+" + centInterval : centInterval, false),
+                    new Graph.Label(" " + peekFreq.toFixed(1), true, Graph.Label.Placement.TOP,
+                        new Graph.TextStyle('0.9rem Oswald', "rgb(100, 100, 100)")
+                    )
                 ]));
             peeks.push(peekFreq);
         });

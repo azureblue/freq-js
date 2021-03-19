@@ -63,7 +63,7 @@ export class FrequencyPeeksFilter {
     }
 
     handlePeek(freq, value) {
-        const freqDist = freq / 4;
+        const freqDist = 20;
         this._tempBuffer.clear();
         if (!this._treeBuffer.findPeeks(this._tempBuffer, freq - freqDist, value, freq + freqDist))
             return;
