@@ -218,6 +218,8 @@ export class Graph extends GraphBase {
                 currentY = this.drawLabel(xp, currentY, lab) + this.style.labelSeparation;
             });
 
+            verticalLine.lineStyle.apply(ctx);
+
             ctx.beginPath();
             ctx.moveTo(xp, currentY);
             ctx.lineTo(xp, graphRect.height);
@@ -242,7 +244,7 @@ Graph.VerticalLine = class {
     /**
      * @param {number} x
      * @param {Array<Graph.Label>} labels
-     * @param {Graph.TextStyle} lineStyle
+     * @param {Graph.LineStyle} lineStyle
      */
     constructor(x, labels, lineStyle = Graph.defaultStyle.plotStyle) {
         this.x = x;

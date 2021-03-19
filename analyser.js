@@ -96,7 +96,7 @@ export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
                     new Graph.Label(" " + peekFreq.toFixed(1), true, Graph.Label.Placement.TOP,
                         new Graph.TextStyle('0.9rem Oswald', "rgb(100, 100, 100)")
                     )
-                ]));
+                ], new Graph.LineStyle(Graph.defaultStyle.plotStyle.width, "#5432a8") ));
             peeks.push(peekFreq);
         });
     }
