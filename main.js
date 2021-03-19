@@ -13,11 +13,14 @@ import { LogMagnitude } from "./logMagnitude.js";
 import { AxisTicksGenerator, LinearScale, LogarithmicScale, AxisTicks, NoteIndicator } from "./graph.js";
 import { Graph } from "./analyserGraph.js";
 import { startWithOverlay } from "./startOverlay.js";
+import { createGetParamsMap } from "./utils.js";
+
+const getParams = createGetParamsMap();
 
 const sampleSize = 1024 * 4;
-let audioSource = new UserAudioDataSource(sampleSize);
+let audioSource = new UserAudioDataSource(sampleSize, getParams.has("useAudioWorklets"));
 const sampleRate = audioSource.sampleRate;
-let overlapper = new OverlappingDataSource(sampleRate, sampleSize, sampleSize / 2);
+// let overlapper = new OverlappingDataSource(sampleRate, sampleSize, sampleSize / 2);
 
 console.debug("sample rate: " + sampleRate);
 console.debug("frame time: " + (sampleSize / sampleRate));

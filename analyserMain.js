@@ -5,10 +5,12 @@ import { AxisTicksGenerator, LinearScale, LogarithmicScale } from "./graph.js";
 import { startWithOverlay } from "./startOverlay.js";
 import { createGetParamsMap } from "./utils.js";
 
+const getParams = createGetParamsMap();
+
 const sampleSize = 1024 * 8;
 const sourceSampleSize = 1024 * 4;
 
-let audioSource = new UserAudioDataSource(sourceSampleSize);
+let audioSource = new UserAudioDataSource(sourceSampleSize, getParams.has("useAudioWorklets"));
 const sampleRate = audioSource.sampleRate;
 let overlapper = new OverlappingDataSource(sampleRate, sourceSampleSize, sampleSize);
 
@@ -19,6 +21,7 @@ const logFftScales = [new LogarithmicScale(40, 8000), new LinearScale(-140, 0)];
 // const logFftScales = [new LinearScale(40, 5000), new LinearScale(-140, 0)];
 
 const graph = new Graph(document.getElementById("analyser"), logFftScales[0], logFftScales[1],
+
 AxisTicksGenerator.generateLog10ScaleTicks(40, 8000, AxisTicksGenerator.useKPrefix)
     // .add(25, "25")
     // .add(150, "150")
@@ -34,7 +37,6 @@ AxisTicksGenerator.generateLinearTicks(-140, 0, 20, []));
 const analyser = new Analyser(sampleSize, sampleRate, [40, 8000], graph);
 
 startWithOverlay(() => {
-    let getParams = createGetParamsMap();
     let requestedFrame = -1;
     overlapper.setConsumer({accept: data => {
         window.cancelAnimationFrame(requestedFrame);

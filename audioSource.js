@@ -11,14 +11,16 @@ export class AudioDataConsumer {
 export class UserAudioDataSource {
     /**
      * @param {number} sampleSize - Needs to be a power of 2.
+     * @param {boolean} userAudioWorklets
      */
-    constructor(sampleSize) {
+    constructor(sampleSize, userAudioWorklets = false) {
         /**@type AudioContext*/
         this._audioContext = new UserAudioDataSource.AudioContext();
         this._sampleSize = sampleSize;
         this._waveData = new Float32Array(sampleSize);
         this._consumer = null;
         this._processor = null;
+        this._userWorklets = userAudioWorklets;
     }
 
     get sampleSize() {
@@ -32,12 +34,23 @@ export class UserAudioDataSource {
     /**
      * @param {AudioDataConsumer} audioDataConsumer
      */
-    _init_processor(audioDataConsumer) {
-        this._consumer = audioDataConsumer;
+    async _init_processor(audioDataConsumer) {
         if (this._processor != null) {
             console.error("already started");
+            return;
+        }
+        this._consumer = audioDataConsumer;
+
+        if (this._userWorklets) {
+
+            await this._audioContext.audioWorklet.addModule('./bufferedAudioSource.js');
+            this._processor = new AudioWorkletNode(this._audioContext, 'BufferedAudioSource_0');
+
+            /** @param {MessageEvent} msgEvent */
+            this._processor.port.onmessage = msgEvent => {
+                this._consumer.accept(msgEvent.data);
+            }
         } else {
-            this._audioContext.resume();
             this._processor = this._audioContext.createScriptProcessor(this._sampleSize, 1, 1);
             this._processor.onaudioprocess = (/**@type AudioProcessingEvent */audioProcessEvent) => {
                 const inputBuffer = audioProcessEvent.inputBuffer;
@@ -50,14 +63,15 @@ export class UserAudioDataSource {
                 this._consumer.accept(this._waveData);
             };
         }
+        this._audioContext.resume();
     }
 
     /**
      * @param {AudioDataConsumer} audioDataConsumer
      * @param {Array<number>} frequencies
      */
-    startTest(audioDataConsumer, frequencies) {
-        this._init_processor(audioDataConsumer);
+    async startTest(audioDataConsumer, frequencies) {
+        await this._init_processor(audioDataConsumer);
         let gainNode = this._audioContext.createGain();
         gainNode.gain.value = 1 / frequencies.length;
 
