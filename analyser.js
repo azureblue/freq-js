@@ -18,19 +18,28 @@ import { Graph } from "./analyserGraph.js";
  * @param {Graph} logFFTGraph
  */
 export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
+    function binToFreq(bin) {
+        return bin * sampleRate / sampleSize;
+    }
+
+    function freqToBin(freq) {
+        return Math.ceil(freq * sampleSize / sampleRate);
+    }
+
+    const processingSize = freqToBin(frequencyRange[1]);
     const fftData = new Float32Array(sampleSize);
-    const noiseFloor = new Float32Array(sampleSize / 2);
-    const logMag = new Float32Array(sampleSize / 2);
+    const noiseFloor = new Float32Array(processingSize);
+    const logMag = new Float32Array(processingSize);
 
     const windowTransform = new GaussianWindow(sampleSize, 0.35);
     const fftPipeline = new Pipeline([windowTransform, new FFT(sampleSize)]);
-    const logMagPipeline = new Pipeline([new BuffersAverage(sampleSize / 2, 2), new LogMagnitude(20, windowTransform.sum / 2)]);
+    const logMagPipeline = new Pipeline([new BuffersAverage(processingSize, 2), new LogMagnitude(20, windowTransform.sum / 2)]);
     const noiseFloorPipeline = new Pipeline([new RollingMedian(sampleSize / 512), new MovingAverage(Math.round(sampleSize / 512))]);
 
-    const wavefftxs = new Float32Array(sampleSize / 2);
+    const wavefftxs = new Float32Array(processingSize);
 
-    for (let i = 0; i < sampleSize / 2; i++)
-        wavefftxs[i] = i * sampleRate / sampleSize;
+    for (let i = 0; i < processingSize; i++)
+        wavefftxs[i] = binToFreq(i);
 
     const peekFinder = new PeekFinder(1);
     const peekFreqFilter = new FrequencyPeeksFilter();
@@ -51,16 +60,13 @@ export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
         return notes.reduce((/**@type {Note}*/a, /**@type {Note}*/b) => (Math.abs(a.frequency() - freq) < Math.abs(b.frequency() - freq)
             ? a : b));
     }
-    function binToFreq(i) {
-        return i * sampleRate / sampleSize;
-    }
     /**
      * @param {Float32Array} waveData
      */
     this.update = function (waveData) {
         fftData.set(waveData);
         fftPipeline.apply(fftData);
-        logMag.set(fftData.subarray(0, sampleSize / 2));
+        logMag.set(fftData.subarray(0, processingSize));
         logMagPipeline.apply(logMag);
         logFFTGraph.drawScales();
         logFFTGraph.plotData(wavefftxs, logMag);
