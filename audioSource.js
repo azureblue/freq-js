@@ -1,4 +1,7 @@
 import { CyclicBuffer } from "./cyclicBuffer.js";
+import { relativeTo } from "./utils.js";
+
+const audioWorklet = './bufferedAudioSource.js';
 
 export class AudioDataConsumer {
     /**
@@ -41,7 +44,7 @@ export class UserAudioDataSource {
         this._consumer = audioDataConsumer;
 
         if (this.supportsAudioWorklets()) {
-            await this._audioContext.audioWorklet.addModule('/bufferedAudioSource.js');
+            await this._audioContext.audioWorklet.addModule(relativeTo(import.meta.url, audioWorklet));
             this._processor = new AudioWorkletNode(this._audioContext, 'BufferedAudioSource_0', {
                 /**@type {BufferedAudioSourceOptions} */
                 processorOptions: {
@@ -99,8 +102,7 @@ export class UserAudioDataSource {
         if (this._audioContext.audioWorklet.addModule == undefined)
             return false;
 
-            return true;
-
+        return true;
     }
 
     /**

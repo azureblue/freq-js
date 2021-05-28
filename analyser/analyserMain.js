@@ -1,9 +1,9 @@
 import { Analyser } from "./analyser.js";
-import { AnalyserGraph } from "/graph/analyserGraph.js";
-import { OverlappingDataSource, UserAudioDataSource } from "/audioSource.js";
+import { AnalyserGraph } from "../graph/analyserGraph.js";
+import { OverlappingDataSource, UserAudioDataSource } from "../audioSource.js";
 import { AxisTicks, AxisTicksGenerator, LinearScale, LogarithmicScale } from "../graph/graph.js";
-import { startWithOverlay } from "/startOverlay.js";
-import { createGetParamsMap } from "/utils.js";
+import { startWithOverlay } from "../startOverlay.js";
+import { createGetParamsMap } from "../utils.js";
 import { CONFIG } from "../config.js";
 import { toggleFullScreen } from "../utils.js";
 

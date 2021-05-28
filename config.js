@@ -1,5 +1,5 @@
 import {isNumeric, createGetParamsMap } from "./utils.js";
-import { DOMElementOwner } from "/base.js";
+import { DOMElementOwner } from "./base.js";
 
 const storage = window.localStorage;
 

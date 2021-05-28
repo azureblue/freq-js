@@ -1,16 +1,16 @@
-import { Transform } from "/transform.js"
-import { AverageBuffer, MovingAverage } from "/average.js";
-import { FFT } from "/fft.js";
-import { Note } from "/music.js";
-import { NoteFinder } from "/noteFinder.js";
-import { FrequencyPeeksFilter, PeekFinder, QuadraticPeekInterpolator } from "/peeks.js";
-import { RollingMedian } from "/rollingMedian.js";
-import { BuffersAverage } from "/buffersAverage.js";
-import { GaussianWindow } from "/window.js";
-import { Pipeline } from "/pipeline.js";
-import { LogMagnitude } from "/logMagnitude.js";
-import { AnalyserGraph } from "/graph/analyserGraph.js";
-import { Graph } from "/graph/graph.js";
+import { Transform } from "../transform.js"
+import { AverageBuffer, MovingAverage } from "../average.js";
+import { FFT } from "../fft.js";
+import { Note } from "../music.js";
+import { NoteFinder } from "../noteFinder.js";
+import { FrequencyPeeksFilter, PeekFinder, QuadraticPeekInterpolator } from "../peeks.js";
+import { RollingMedian } from "../rollingMedian.js";
+import { BuffersAverage } from "../buffersAverage.js";
+import { GaussianWindow } from "../window.js";
+import { Pipeline } from "../pipeline.js";
+import { LogMagnitude } from "../logMagnitude.js";
+import { AnalyserGraph } from "../graph/analyserGraph.js";
+import { Graph } from "../graph/graph.js";
 import { NoteCentsFreqLabelManager, NoteCentsFreqLabelStyle } from "../graph/labels.js";
 import { LineStyle, TextStyle } from "../graph/style.js";
 import { CONFIG } from "../config.js";

@@ -1,6 +1,6 @@
-import { DOMElementOwner } from "/base.js";
-import { CONFIG } from "/config.js";
-import { TextStyle } from "/graph/style.js";
+import { DOMElementOwner } from "./base.js";
+import { CONFIG } from "./config.js";
+import { TextStyle } from "./graph/style.js";
 
 export function injectCSS(cssRule) {
 /**@type {HTMLStyleElement} */
@@ -146,4 +146,11 @@ export function isNumeric(n, allowScientificNotation = false) {
     return allowScientificNotation ?
                 !Number.isNaN(parseFloat(n)) && Number.isFinite(n) :
                 isNumRegEx.test(n);
+}
+
+export function relativeTo(sourcePath, relativePath) {
+    const splitPath = sourcePath.split("/");
+    splitPath.pop();
+    splitPath.push(relativePath);
+    return splitPath.join("/");
 }
