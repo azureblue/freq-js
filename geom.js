@@ -20,6 +20,14 @@ export class Rect {
         return this.h;
     }
 
+    set width(w) {
+        return this.w = w;
+    }
+
+    set height(h) {
+        return this.h = h;
+    }
+
     /**
      * @param {Rect} rect
      */
@@ -36,4 +44,28 @@ export class Rect {
         return true;
     }
 
+    get x1() {
+        return this.x;
+    }
+
+    get x2() {
+        return this.x + this.width;
+    }
+
+    get y1() {
+        return this.y;
+    }
+
+    get y2() {
+        return this.y + this.height;
+    }
+}
+
+
+/**
+ * @param {Rect | DOMRect} rect
+ * @returns {Rect}
+ */
+Rect.fromRect = function(rect) {
+    return new Rect(rect.x, rect.y, rect.width, rect.height)
 }

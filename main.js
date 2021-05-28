@@ -10,17 +10,19 @@ import { BuffersAverage } from "./buffersAverage.js";
 import { GaussianWindow } from "./window.js";
 import { Pipeline } from "./pipeline.js";
 import { LogMagnitude } from "./logMagnitude.js";
-import { AxisTicksGenerator, LinearScale, LogarithmicScale, AxisTicks, NoteIndicator } from "./graph.js";
-import { Graph } from "./analyserGraph.js";
+import { AxisTicksGenerator, LinearScale, LogarithmicScale, AxisTicks, NoteIndicator } from "./graph/graph.js";
+import { AnalyserGraph } from "./graph/analyserGraph.js";
 import { startWithOverlay } from "./startOverlay.js";
-import { createGetParamsMap } from "./utils.js";
+import { createGetParamsMap, injectCSS } from "./utils.js";
+import { DOMElementOwner, PositionableElement } from "./base.js";
+import { NoteCentsFreqLabelManager, NoteCentsFreqLabelStyle } from "./graph/labels.js";
 
 const getParams = createGetParamsMap();
 
 const sampleSize = 1024 * 4;
-let audioSource = new UserAudioDataSource(sampleSize, getParams.has("useAudioWorklets"));
+let audioSource = new UserAudioDataSource(sampleSize , getParams.has("useAudioWorklets"));
 const sampleRate = audioSource.sampleRate;
-// let overlapper = new OverlappingDataSource(sampleRate, sampleSize, sampleSize / 2);
+let overlapper = new OverlappingDataSource(sampleRate, sampleSize , sampleSize);
 
 console.debug("sample rate: " + sampleRate);
 console.debug("frame time: " + (sampleSize / sampleRate));
@@ -28,21 +30,32 @@ console.debug("frame time: " + (sampleSize / sampleRate));
 const waveScales = [new LinearScale(0, sampleSize), new LinearScale(-1, 1)];
 // const logFftScales = [new LogarithmicScale(40, 10000), new LinearScale(-140, 0)];
 const logFftScales = [new LinearScale(40, 5000), new LinearScale(-140, 0)];
-const waveGraph = new Graph(document.getElementById('ul'), waveScales[0], waveScales[1],
+const waveGraph = new AnalyserGraph(waveScales[0], waveScales[1],
     AxisTicksGenerator.generateLinearTicks(0, sampleSize, 512, AxisTicksGenerator.sequence(0, sampleSize, 1024)),
     AxisTicksGenerator.generateLinearTicks(-1, 1, 0.2, [-1, 0, 1], v => v.toFixed(1)));
-const logFftGraph = new Graph(document.getElementById('lr'), logFftScales[0], logFftScales[1],
+const logFFTGraph = new AnalyserGraph(logFftScales[0], logFftScales[1],
     // AxisTicksGenerator.generateLog10ScaleTicks(40, 10000, AxisTicksGenerator.useKPrefix),
     AxisTicksGenerator.generateLinearTicks(0, 5000, 100, [1000, 2000, 3000, 4000, 5000], AxisTicksGenerator.useKPrefix),
     AxisTicksGenerator.generateLinearTicks(-140, 0, 20, []),
     );
-const noteIndicator = new NoteIndicator(document.getElementById('ur'));
-const analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFftGraph, noteIndicator);
 
+const noteIndicator = new NoteIndicator(document.getElementById('ur'));
+const analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator);
+waveGraph.addToParentOrDOM(document.getElementById("ul"));
+waveGraph.updateSize();
+logFFTGraph.addToParentOrDOM(document.getElementById("lr"));
+logFFTGraph.updateSize();
+let labelStyle = NoteCentsFreqLabelStyle.defaultStyle.clone();
+labelStyle.spacing[1] = 0;
+labelStyle.spacing[2] = 0;
+const labels = new NoteCentsFreqLabelManager(logFFTGraph, labelStyle, "analyser-label");
+
+injectCSS(".analyser-label.note {display: none;}");
+injectCSS(".analyser-label.cents {display: none;}");
 function start() {
-    // overlapper.start({accept: data => analyser.update(data)});
-    // audioSource.startTest({accept: data => overlapper.accept(data)}, [70, 100, 220, 502]);
-    audioSource.start({accept: data => analyser.update(data)});
+    overlapper.setConsumer({accept: data => analyser.update(data)});
+    audioSource.startTest({accept: data => overlapper.accept(data)}, [70, 100, 220, 502]);
+    // audioSource.start({accept: data => analyser.update(data)});
 }
 
 startWithOverlay(start);
@@ -91,9 +104,11 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
         fftPipeline.apply(fftData);
         logMag.set(fftData.subarray(0, sampleSize / 2));
         logMagPipeline.apply(logMag);
-        waveGraph.drawScales();
-        waveGraph.plotData(wavexs, waveData);
-        logFFTGraph.drawScales();
+        waveGraph.clearPlot();
+        labels.reuseAll();
+        waveGraph.plotData(wavexs, waveData, 10);
+        // logFFTGraph.drawScales();
+        logFFTGraph.clearPlot();
         logFFTGraph.plotData(wavefftxs, logMag);
         noiseFloor.set(logMag);
         noiseFloorPipeline.apply(noiseFloor);
@@ -106,9 +121,22 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
 
             const ip = peekInterpolator.interpolatePeek(logMag[peek - 1], logMag[peek], logMag[peek + 1]);
             const peekFreq = binToFreq(peek + ip);
-            logFFTGraph.plotVerticalLine(new Graph.VerticalLine(peekFreq, [new Graph.Label(peekFreq.toFixed(1), true)]));
+            labels.addLabel(peekFreq, {
+                note: "#",
+                cents: "#",
+                freq: peekFreq.toFixed(1)
+            });
+            // logFFTGraph.plotVerticalLine(new AnalyserGraph.VerticalLine(peekFreq, [new AnalyserGraph.Label(peekFreq.toFixed(1), true)]));
             peeks.push(peekFreq);
         });
+
+        for (let i = 80; i < 5000; i += 105.129)  {
+            labels.addLabel(i, {
+                note: "#",
+                cents: "#",
+                freq: i.toFixed(1)
+            });
+        }
         let res = noteFinder.findBestNote(peeks, notes);
         if (!res)
             res = lastFoundNoteRes;
@@ -119,5 +147,6 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
             noteFinderSmoother.putValue(res.avgCentDiff);
             noteIndicator.drawNote(res.note, noteFinderSmoother.average());
         }
+        labels.cleanNotUsed();
     }
 }

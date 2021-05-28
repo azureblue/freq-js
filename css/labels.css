@@ -1,0 +1,68 @@
+
+.vertical-line-label {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+}
+
+.absolutelabel {
+    position: absolute;
+    border-style: solid;
+    border-color: transparent;
+    font: 1.2rem Oswald;
+    color: rgb(40, 40, 40);
+    user-select: none;
+    transform: translateX(-50%);
+}
+.absolutelabel.cents{
+    transform: unset;
+}
+.absolutelabel.freq {
+    writing-mode: vertical-lr;
+}
+
+.absolutelabel-vertical-line {
+    position: absolute;
+    background-color:rgb(158, 87, 190);
+}
+
+.vertical-line-label .label {
+    position: unset;
+}
+
+.vertical-label {
+    writing-mode: vertical-lr;
+}
+
+.vertical-line {
+    position: unset;
+    background-color:rgb(158, 87, 190);
+    flex: 1;
+    width: 2px;
+}
+
+.label {
+    border: 10px;
+    border-style: solid;
+    border-color: transparent;
+    font: 1.2rem Oswald;
+    color: rgb(40, 40, 40);
+    user-select: none;
+}
+
+.vertical-line-label .label {
+    border: 5px;
+}
+
+.label.freq {
+    writing-mode: vertical-lr;
+    font: 0.9rem Oswald;
+    margin: 0.4rem;
+}
+
+.label.cents {
+    border: 0;
+    margin: 0;
+}

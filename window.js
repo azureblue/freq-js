@@ -42,7 +42,7 @@ HanningWindow.create = function(n, params = {}) {
 }
 
 export class GaussianWindow extends Window {
-    constructor(N, sigma) {
+    constructor(N, sigma = 0.5) {
         super(N);
         this.N = N;
         this.sigma = sigma;

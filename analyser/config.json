@@ -1,0 +1,144 @@
+{
+    "source": {
+        "sampleSize": "${1024 * 8}",
+        "windowStep": "${@source.sampleSize / 2}"
+    },
+    "window": {
+        "name": "Gaussian",
+        "params": {
+            "sigma": 0.2
+        }
+    },
+    "magnitude": {
+        "processing": [
+            {
+                "name": "BuffersAverage",
+                "params": {
+                    "numberOfBuffers": 3
+                }
+            }
+        ]
+    },
+    "noiseFloor": {
+        "processing": [
+            {
+                "name": "RollingMedian",
+                "params": {
+                    "spread": "${@source.sampleSize / 512}"
+                }
+            },
+            {
+                "name": "MovingAverage",
+                "params": {
+                    "spread": "${@source.sampleSize / 512}"
+                }
+            }
+        ]
+    },
+    "analyser": {
+        "frequencyRange": [
+            40,
+            8000
+        ],
+        "peeks": {
+            "minSpread": 1,
+            "minHeight": 15,
+            "interpolation": "quadratic"
+        }
+    },
+    "graph": {
+        "scales": {
+            "x": {
+                "range": "@analyser.frequencyRange",
+                "type": "log"
+            },
+            "y": {
+                "range": [
+                    -140,
+                    0
+                ],
+                "type": "linear"
+            }
+        },
+        "plotNoiseFloor": true,
+        "plotPeeksMinHeight": true,
+        "peeks": {
+            "noteStyle": {
+                "font": "Oswald",
+                "fontSize": "1.2rem",
+                "color": "rgb(40, 40, 40)"
+            },
+            "centsStyle": {
+                "font": "Oswald",
+                "fontSize": "1.2rem",
+                "color": "rgb(40, 40, 40)"
+            },
+            "freqStyle": {
+                "font": "Oswald",
+                "fontSize": "0.9rem",
+                "color": "rgb(40, 40, 40)"
+            },
+
+            "line": {
+                "width": 2,
+                "color": "rgb(158, 87, 190)"
+            },
+
+            "spacing": [
+                7,
+                7,
+                7,
+                7
+            ]
+
+        },
+        "style": {
+            "plot": {
+                "magnitude": {
+                    "width": 2,
+                    "color": "rgb(100, 100, 100)"
+                },
+                "noiseFloor": {
+                    "width": 2,
+                    "color": "rgba(50, 84, 200, 0.5)"
+                },
+                "peeksFloor": {
+                    "width": 2,
+                    "color": "rgba(150, 4, 90, 0.5)"
+                }
+            },
+            "labels": {
+                "textStyle": {
+                    "font": "Oswald",
+                    "fontSize": "1.2rem",
+                    "color": "rgb(40, 40, 40)"
+                },
+                "spacing": [
+                    5,
+                    5,
+                    5,
+                    5
+                ]
+            },
+            "grid": {
+                "lines": {
+                    "width": 2,
+                    "color": "rgb(220, 220, 220)"
+                },
+                "keyLines": {
+                    "width": 2,
+                    "color": "rgb(170, 170, 170)"
+                }
+            },
+            "margin": 2
+        }
+    },
+    "ui": {
+        "fullscreen": false,
+        "scaling": 1.0
+    },
+    "music": {
+        "a4": 440,
+        "preferSharps": true
+    }
+}

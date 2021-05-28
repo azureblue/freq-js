@@ -8,6 +8,7 @@
         #ul,
         #ur,
         #lr {
+            position: absolute;
             width: 50%;
             height: 50%;
         }
@@ -28,13 +29,17 @@
     <link rel="preload" href="https://fonts.gstatic.com/s/oswald/v36/TK3_WkUHHAIjg75cFRf3bXL8LICs1_FvsUZiZQ.woff2" as="font" crossorigin="anonymous" />
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/graph.css">
+    <link rel="stylesheet" href="css/analyser.css">
+    <link rel="stylesheet" href="css/labels.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <style id="custom-style"></style>
 </head>
 
 <body>
-    <canvas id="ul"></canvas>
+    <div id="ul"></div>
     <!-- <canvas id="ll"></canvas> -->
     <canvas id="ur"></canvas>
-    <canvas id="lr"></canvas>
+    <div id="lr"></div>
     <script type="module" src="main.js"></script>
 </body>
 </html>

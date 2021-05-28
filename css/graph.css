@@ -1,8 +1,92 @@
-  @font-face {
+@font-face {
     font-family: 'Oswald';
     font-style: normal;
     font-weight: 400;
     font-display: swap;
     src: url(https://fonts.gstatic.com/s/oswald/v36/TK3_WkUHHAIjg75cFRf3bXL8LICs1_FvsUZiZQ.woff2) format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-  }
+}
+
+
+
+.rect-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.invisible {
+    opacity: 0;
+}
+
+.vertical {
+    transform: rotate(90deg);
+}
+
+path.grid-line {
+    stroke: rgb(223, 223, 223);
+    stroke-width: 2;
+}
+path.grid-line.key {
+    stroke: rgb(182, 182, 182);
+    stroke-width: 2;
+}
+
+svg.grid {
+    user-select: none;
+    z-index: -1;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    stroke-linecap: square;
+    overflow: visible;
+    fill: none;
+}
+
+.vertical-line-label {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+}
+
+.vertical-line-label .label {
+    position: unset;
+}
+
+.vertical-label {
+    writing-mode: vertical-lr;
+}
+
+.vertical-line {
+    position: unset;
+    background-color:rgb(158, 87, 190);
+    flex: 1;
+    width: 2px;
+
+}
+
+.label {
+    border: 10px;
+    border-style: solid;
+    border-color: transparent;
+    font: 1.2rem Oswald;
+    color: rgb(40, 40, 40);
+    user-select: none;
+}
+
+.vertical-line-label .label {
+    border: 5px;
+}
+
+.label.freq {
+    writing-mode: vertical-lr;
+    font: 0.9rem Oswald;
+    margin: 0.4rem;
+}
+
+.label.cents {
+    border: 0;
+    margin: 0;
+}

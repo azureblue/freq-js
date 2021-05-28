@@ -1,11 +1,13 @@
-const sourceSampleSize = 1024 * 4;
-
 class BufferedAudioSource extends AudioWorkletProcessor {
 
-    constructor() {
+    /**
+     * @param {AudioWorkletNodeOptions} options
+     */
+    constructor(options) {
         super();
-        console.log("creating BufferedAudioSource audio worklet");
-        this._buffer = new Float32Array(sourceSampleSize);
+        this._bufferSize = options.processorOptions.sampleSize;
+        console.log("creating BufferedAudioSource audio worklet with bufferSize: " + this._bufferSize);
+        this._buffer = new Float32Array(this._bufferSize);
         this._currentPos = 0;
     }
 
@@ -19,10 +21,10 @@ class BufferedAudioSource extends AudioWorkletProcessor {
             const inputSize = inputs[0][0].length;
             this._buffer.set(inputs[0][0], this._currentPos);
             this._currentPos += inputSize;
-            if (this._currentPos == sourceSampleSize) {
+            if (this._currentPos == this._bufferSize) {
                 this._currentPos = 0;
                 this.port.postMessage(this._buffer, [this._buffer.buffer]);
-                this._buffer = new Float32Array(sourceSampleSize);
+                this._buffer = new Float32Array(this._bufferSize);
             }
         }
       return true

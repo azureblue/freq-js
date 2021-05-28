@@ -1,0 +1,9 @@
+{
+    "name": "freq-js",
+    "short_name": "freq-js",
+    "start_url": ".",
+    "display": "fullscreen",
+    "orientation": "landscape",
+    "background_color": "#aaa",
+    "description": "freq-js"
+  }

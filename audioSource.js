@@ -13,18 +13,17 @@ export class UserAudioDataSource {
      * @param {number} sampleSize - Needs to be a power of 2.
      * @param {boolean} userAudioWorklets
      */
-    constructor(sampleSize, userAudioWorklets = false) {
+    constructor(sampleSize) {
         /**@type AudioContext*/
         this._audioContext = new UserAudioDataSource.AudioContext();
         this._sampleSize = sampleSize;
         this._waveData = new Float32Array(sampleSize);
         this._consumer = null;
         this._processor = null;
-        this._userWorklets = userAudioWorklets;
     }
 
     get sampleSize() {
-        return this.sampleSize
+        return this._sampleSize
     }
 
     get sampleRate() {
@@ -41,10 +40,14 @@ export class UserAudioDataSource {
         }
         this._consumer = audioDataConsumer;
 
-        if (this._userWorklets) {
-
-            await this._audioContext.audioWorklet.addModule('./bufferedAudioSource.js');
-            this._processor = new AudioWorkletNode(this._audioContext, 'BufferedAudioSource_0');
+        if (this.supportsAudioWorklets()) {
+            await this._audioContext.audioWorklet.addModule('/bufferedAudioSource.js');
+            this._processor = new AudioWorkletNode(this._audioContext, 'BufferedAudioSource_0', {
+                /**@type {BufferedAudioSourceOptions} */
+                processorOptions: {
+                    sampleSize: this.sampleSize
+                }
+            });
 
             /** @param {MessageEvent} msgEvent */
             this._processor.port.onmessage = msgEvent => {
@@ -72,18 +75,32 @@ export class UserAudioDataSource {
      */
     async startTest(audioDataConsumer, frequencies) {
         await this._init_processor(audioDataConsumer);
-        let gainNode = this._audioContext.createGain();
-        gainNode.gain.value = 1 / frequencies.length;
+        this.streamSource = this._audioContext.createGain();
+        this.streamSource.gain.value = 1 / frequencies.length;
 
         frequencies.map(fr => {
             let oscillator = this._audioContext.createOscillator();
             oscillator.type = "sine";
             oscillator.frequency.setValueAtTime(fr, this._audioContext.currentTime);
-            oscillator.connect(gainNode);
+            oscillator.connect(this.streamSource);
             oscillator.start();
         })
-        gainNode.connect(this._processor);
+        this.streamSource.connect(this._processor);
         this._processor.connect(this._audioContext.destination);
+    }
+
+    supportsAudioWorklets() {
+        if (window.AudioWorkletNode == undefined)
+            return false;
+
+        if (this._audioContext.audioWorklet == undefined)
+            return false;
+
+        if (this._audioContext.audioWorklet.addModule == undefined)
+            return false;
+
+            return true;
+
     }
 
     /**
@@ -95,14 +112,18 @@ export class UserAudioDataSource {
         // console.log("sample rate: " + sampleRate);
         navigator.mediaDevices.getUserMedia({ audio: true, video: false })
             .then(stream => {
-                const streamSource = this._audioContext.createMediaStreamSource(stream);
-                streamSource.connect(this._processor);
+                this.streamSource = this._audioContext.createMediaStreamSource(stream);
+                this.streamSource.connect(this._processor);
                 this._processor.connect(this._audioContext.destination);
             }, () => console.error("couldn't open audio input"))
             .catch(ex => console.error(ex));
     }
-}
 
+    stop() {
+        this.streamSource.disconnect();
+        this._processor.disconnect();
+    }
+}
 UserAudioDataSource.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 export class OverlappingDataSource extends AudioDataConsumer {
