@@ -18,7 +18,8 @@ const linkRegex = /@\S+/g;
 const calcRegex = /^[0-9.+-/*()\s]+$/g;
 
 export class Config {
-    constructor(config, sourceConfig) {
+    constructor(configName, config, sourceConfig) {
+        this.configName = configName;
         this.config = config;
         this.sourceConfig = sourceConfig;
     }
@@ -71,8 +72,6 @@ export class Config {
      * @param {string} value
      */
     resolveCalc(value) {
-        const len = value.length;
-        let idx = 1;
         linkRegex.lastIndex = 0;
         value = value.replaceAll(linkRegex, link => this.get(link.substring(1)));
         calcRegex.lastIndex = 0;
@@ -186,13 +185,13 @@ export const CONFIG = {
         return JSON.stringify(currentConfig.sourceConfig, null, spaces);
     },
 
-    save: function(json) {
+    save: function(configName, json) {
         const parsed = JSON.parse(json);
-        storage.setItem("config", JSON.stringify(parsed));
+        storage.setItem(configName, JSON.stringify(parsed));
     },
 
-    loadConfig: async function(defaultConfigFile, forceReset = false) {
-        let configJson = storage.getItem("config");
+    loadConfig: async function(configName, defaultConfigFile, forceReset = false) {
+        let configJson = storage.getItem(configName);
         let saveConfig = false;
         if (configJson == null || forceReset) {
             saveConfig = true;
@@ -202,9 +201,9 @@ export const CONFIG = {
             const config = JSON.parse(configJson);
             const configSource = JSON.parse(configJson);
             if (saveConfig)
-                storage.setItem("config", JSON.stringify(config));
+                storage.setItem(configName, JSON.stringify(config));
             const urlParams = createGetParamsMap();
-            currentConfig = new Config(config, configSource);
+            currentConfig = new Config(configName, config, configSource);
             urlParams.forEach((v, k) => {
                 currentConfig.set(k, v == undefined ? true : v);
             })
@@ -222,7 +221,7 @@ export const CONFIG = {
         const res = currentConfig.get(path);
         if (res == null)
             throw "missing path: " + path;
-        console.log(path + " = " + res);
+        // console.log(path + " = " + res);
         return new ConfigValue(res);
     },
 

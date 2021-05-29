@@ -1,0 +1,9 @@
+{
+    "name": "freq-js analyser",
+    "short_name": "freq-js",
+    "start_url": ".",
+    "display": "fullscreen",
+    "orientation": "portrait",
+    "background_color": "#aaa",
+    "description": "freq-js analyser"
+  }

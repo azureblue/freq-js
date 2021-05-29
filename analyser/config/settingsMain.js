@@ -1,9 +1,9 @@
-import { DOMElementOwner } from "/base.js";
-import { CONFIG } from "./config.js";
-import { createGetParamsMap } from "./utils.js";
-function start() {
+import { CONFIG } from "../../config.js";
+import { createGetParamsMap } from "../../utils.js";
+
+export function start(configName, defaultConfigFile) {
     const getMap = createGetParamsMap();
-    CONFIG.loadConfig("/analyser/config.json", getMap.has("reset")).then(() => {
+    CONFIG.loadConfig(configName, defaultConfigFile, getMap.has("reset")).then(() => {
         const storage = window.localStorage;
         const editor = ace.edit("config-editor");
         editor.session.setMode("ace/mode/json");
@@ -31,9 +31,7 @@ function start() {
         });
 
         document.getElementById("save").addEventListener("click", () => {
-            CONFIG.save(editor.getValue());
+            CONFIG.save(configName, editor.getValue());
         });
     });
 }
-
-start();

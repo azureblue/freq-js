@@ -3,7 +3,7 @@ import { AnalyserGraph } from "../graph/analyserGraph.js";
 import { OverlappingDataSource, UserAudioDataSource } from "../audioSource.js";
 import { AxisTicks, AxisTicksGenerator, LinearScale, LogarithmicScale } from "../graph/graph.js";
 import { startWithOverlay } from "../startOverlay.js";
-import { createGetParamsMap } from "../utils.js";
+import { createGetParamsMap, relativeTo } from "../utils.js";
 import { CONFIG } from "../config.js";
 import { toggleFullScreen } from "../utils.js";
 
@@ -22,7 +22,7 @@ class WindowResizeHandler {
 }
 
 function start() {
-        CONFIG.loadConfig("config.json").then(config => {
+        CONFIG.loadConfig("analyser", relativeTo(import.meta.url, "./config.json")).then(() => {
         const getParams = createGetParamsMap();
 
         const sampleSize = CONFIG.get("source.sampleSize").asNumber();

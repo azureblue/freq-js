@@ -16,7 +16,9 @@ import { startWithOverlay } from "./startOverlay.js";
 import { createGetParamsMap, injectCSS } from "./utils.js";
 import { DOMElementOwner, PositionableElement } from "./base.js";
 import { NoteCentsFreqLabelManager, NoteCentsFreqLabelStyle } from "./graph/labels.js";
+import { CONFIG } from "./config.js";
 
+CONFIG.loadConfig()
 const getParams = createGetParamsMap();
 
 const sampleSize = 1024 * 4;

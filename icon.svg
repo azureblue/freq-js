@@ -52,16 +52,20 @@
   <g
      id="layer1">
     <path
+       style="display:none;fill:none;stroke:#238dfc;stroke-width:5.29167;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 96.758738,59.193216 C 70.859346,37.554227 36.38208,22.149165 4.937611,34.638734"
+       id="path2419-3-3" />
+    <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:6.61458;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="M 4.5174963,86.993159 C 23.068738,86.865743 12.262332,11.370938 28.893019,11.429074 c 16.630687,-0.05814 6.472314,65.111394 25.023556,65.23881 18.551242,-0.127416 9.81487,-31.308521 21.780851,-31.308521 13.200228,-0.05814 1.995774,41.50638 20.547016,41.633796"
+       d="M 4.5174963,86.993159 C 27.736116,86.833686 14.491073,12.778561 31.12176,12.836697 c 16.630687,-0.05814 4.36678,56.833938 22.794815,56.960508 13.21697,-0.09078 6.563226,-22.971566 17.155406,-22.971566 11.514326,0 3.449786,40.018322 25.172461,40.16752"
        id="path257" />
     <path
-       style="fill:none;stroke:#8f23fc;stroke-width:5.29167;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:5.29167, 10.5833;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 29.535418,22.276541 V 86.775476"
+       style="fill:none;stroke:#8f23fc;stroke-width:5.29167;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 31.379065,4.3916649 V 91.66645"
        id="path2419-3" />
     <path
-       style="fill:none;stroke:#8f23fc;stroke-width:5.29167;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:5.29167, 10.5833;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 75.519326,54.192682 0.135817,32.897705"
+       style="fill:none;stroke:#2377fc;stroke-width:5.69328;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 95.998811,64.766475 4.1403137,35.227461"
        id="path2419-3-6" />
   </g>
 </svg>

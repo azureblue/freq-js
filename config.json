@@ -1,0 +1,70 @@
+{
+    "graph": {
+        "scales": {
+            "x": {
+                "range": [
+                    40,
+                    5000
+                ],
+                "type": "log"
+            },
+            "y": {
+                "range": [
+                    -140,
+                    0
+                ],
+                "type": "linear"
+            }
+        },
+        "plotNoiseFloor": true,
+        "plotPeeksMinHeight": true,
+        "style": {
+            "plot": {
+                "magnitude": {
+                    "width": 2,
+                    "color": "rgb(100, 100, 100)"
+                },
+                "noiseFloor": {
+                    "width": 2,
+                    "color": "rgba(50, 84, 200, 0.5)"
+                },
+                "peeksFloor": {
+                    "width": 2,
+                    "color": "rgba(150, 4, 90, 0.5)"
+                }
+            },
+            "labels": {
+                "textStyle": {
+                    "font": "Oswald",
+                    "fontSize": "1.2rem",
+                    "color": "rgb(40, 40, 40)"
+                },
+                "spacing": [
+                    5,
+                    5,
+                    5,
+                    5
+                ]
+            },
+            "grid": {
+                "lines": {
+                    "width": 2,
+                    "color": "rgb(220, 220, 220)"
+                },
+                "keyLines": {
+                    "width": 2,
+                    "color": "rgb(170, 170, 170)"
+                }
+            },
+            "margin": 2
+        }
+    },
+    "ui": {
+        "fullscreen": false,
+        "scaling": 1.0
+    },
+    "music": {
+        "a4": 440,
+        "preferSharps": true
+    }
+}
