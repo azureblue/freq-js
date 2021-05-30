@@ -1,5 +1,3 @@
-import { DOMElementOwner } from "./base.js";
-import { CONFIG } from "./config.js";
 import { TextStyle } from "./graph/style.js";
 
 export function injectCSS(cssRule) {

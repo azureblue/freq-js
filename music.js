@@ -1,8 +1,8 @@
 const SQRT12 = 1.059463094359295264561825;
 
 export class Note {
+
     /**
-     *
      * @param str
      * @returns {Note}
      */
@@ -73,7 +73,6 @@ export class Note {
         let ht = this.halftones + halftones;
         return new Note(this.octave + (ht / 12 | 0), ht % 12, preferSharps);
     }
-
 }
 
 Note.A4IdxNumber = 57;

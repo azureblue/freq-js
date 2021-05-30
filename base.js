@@ -24,12 +24,6 @@ export class DOMElementOwner {
      */
     addToParentOrDOM(parent = undefined) {
         let element = this.getElement();
-        // this.elementId = element.getAttribute("id");
-        // if (this.elementId == undefined)
-        //     throw "missing id attribute";
-
-        // if (document.getElementById(this.elementId) != undefined)
-        //     throw "element with the same id already exists: " + this.elementId;
 
         if (parent != undefined)
             parent.appendChild(element);
@@ -122,7 +116,6 @@ export class PositionableElement extends DOMElementOwner {
         this.y = y;
     }
 }
-
 
 export class RectBoundElement extends PositionableElement {
 

@@ -1,24 +1,7 @@
 import { PositionableElement, RectBoundElement } from "../base.js";
-import { Rect } from "../geom.js";
-import { Graph, RectContainer } from "./graph.js";
-import { FontSizeCache, measureText, measureTextDiv, measureTextFont } from "../utils.js";
-import { LabelStyle, Spacing, TextStyle } from "./style.js";
-
-class VerticalLineWithLabel extends RectBoundElement {
-    constructor() {
-        super($(
-    /*html*/`<div class = "vertical-line-label" >
-                <div class = "label"></div>
-                <div class = "vertical-line"></div>
-            </div>`)[0]);
-
-        this.label = this.element.querySelector(".label");
-    }
-
-    change(params = {}) {
-        this.label.textContent = params.text;
-    }
-}
+import { Graph } from "./graph.js";
+import { FontSizeCache, measureTextDiv } from "../utils.js";
+import { TextStyle } from "./style.js";
 
 class LabelManager {
     /**
@@ -29,54 +12,55 @@ class LabelManager {
     }
 
     clearLabels() {
-
     }
+
     /**
      *
      * @param {*} graphRect
      * @param {*} labelData
      */
-    addLabel(position, labelData) {
-
+    addLabel() {
     }
 }
 
 
- export class NoteCentsFreqLabelStyle {
-     /**
-      * @param {TextStyle} note
-      * @param {TextStyle} cents
-      * @param {TextStyle} freq
-      * @param {Array<number>} spacing
-      * @param {string} lineColor
-      * @param {number} lineWidth
-      */
-     constructor(note, cents, freq, spacing, lineColor, lineWidth) {
-         this.note = note;
-         this.cents = cents;
-         this.freq = freq;
-         this.spacing = spacing;
-         this.lineColor = lineColor;
-         this.lineWidth = lineWidth;
-     }
+export class NoteCentsFreqLabelStyle {
 
-     clone() {
-         return new NoteCentsFreqLabelStyle(this.note.clone(), this.cents.clone(), this.freq.clone(),
+    /**
+     * @param {TextStyle} note
+     * @param {TextStyle} cents
+     * @param {TextStyle} freq
+     * @param {Array<number>} spacing
+     * @param {string} lineColor
+     * @param {number} lineWidth
+     */
+    constructor(note, cents, freq, spacing, lineColor, lineWidth) {
+        this.note = note;
+        this.cents = cents;
+        this.freq = freq;
+        this.spacing = spacing;
+        this.lineColor = lineColor;
+        this.lineWidth = lineWidth;
+    }
+
+    clone() {
+        return new NoteCentsFreqLabelStyle(this.note.clone(), this.cents.clone(), this.freq.clone(),
             new Array(...this.spacing), this.lineColor, this.lineWidth);
-     }
- }
+    }
+}
 
- NoteCentsFreqLabelStyle.defaultStyle = new NoteCentsFreqLabelStyle(
-     Graph.defaultStyle.labelStyle.textStyle,
-     Graph.defaultStyle.labelStyle.textStyle,
-     Graph.defaultStyle.labelStyle.textStyle,
-     [10, 10, 10, 10],
-     "rgb(158, 87, 190)",
-     2
- );
+NoteCentsFreqLabelStyle.defaultStyle = new NoteCentsFreqLabelStyle(
+    Graph.defaultStyle.labelStyle.textStyle,
+    Graph.defaultStyle.labelStyle.textStyle,
+    Graph.defaultStyle.labelStyle.textStyle,
+    [10, 10, 10, 10],
+    "rgb(158, 87, 190)",
+    2
+);
 
 
 export class NoteCentsFreqLabelManager extends LabelManager {
+
     /**
      * @param {Graph} graph
      * @param {NoteCentsFreqLabelStyle} labelStyle
@@ -106,18 +90,6 @@ export class NoteCentsFreqLabelManager extends LabelManager {
 
         /**@type {HTMLStyleElement} */
         let customStyles = document.getElementById("custom-style")
-        // const noteRuleIdx = customStyles.sheet.insertRule(`.${this._uniqueClassName}.note {
-        //     ${this._style.note.asStyle()};
-        // }`);
-
-        // const centsRuleIdx = customStyles.sheet.insertRule(`.${this._uniqueClassName}.cents {
-        //     ${this._style.cents.asStyle()};
-        // }`);
-        // const freqRuleIdx = customStyles.sheet.insertRule(`.${this._uniqueClassName}.freq {
-        //     ${this._style.freq.asStyle()};
-        // }`);
-
-
 
         let label = this.labelConstructor();
         label.change({
@@ -130,6 +102,7 @@ export class NoteCentsFreqLabelManager extends LabelManager {
         idx = customStyles.sheet.insertRule(`.${this._uniqueClassName}.note {
             ${this._style.note.asStyle()};
         }`);
+
         const noteHeight = measureTextDiv(label.note.element).height;
         customStyles.sheet.deleteRule(idx);
         customStyles.sheet.insertRule(`.${this._uniqueClassName}.note {
@@ -149,7 +122,6 @@ export class NoteCentsFreqLabelManager extends LabelManager {
             line-height: ${centsHeight}px;
         }`);
 
-
         idx = customStyles.sheet.insertRule(`.${this._uniqueClassName}.freq {
             ${this._style.freq.asStyle()};
         }`);
@@ -162,7 +134,6 @@ export class NoteCentsFreqLabelManager extends LabelManager {
             line-height: ${freqHeight}px;
         }`);
 
-
         customStyles.sheet.insertRule(`.${this._uniqueClassName}.absolutelabel-vertical-line {
             width: ${this._style.lineWidth}px;
             background-color: ${this._style.lineColor};
@@ -172,12 +143,12 @@ export class NoteCentsFreqLabelManager extends LabelManager {
 
         this._fontWidthCache.calculate(this._style.freq.fontString(), "0123456789.");
         this._fontCentsWidthCache.calculate(this._style.cents.fontString(), "0123456789+-");
-
     }
 
     reuseAll() {
         this._reuseIdx = 0;
     }
+
     /**
      * @param {number} freq
      * @param {NoteCentsFreqLabelData} labelData
@@ -221,21 +192,22 @@ export class NoteCentsFreqLabelManager extends LabelManager {
  * @property {number} freq
  */
 
- /**
- * @typedef {Object} NoteCentsFreqLabelPosition
- * @property {integer} x
- * @property {integer} topY
- * @property {integer} bottomY
+/**
+* @typedef {Object} NoteCentsFreqLabelPosition
+* @property {integer} x
+* @property {integer} topY
+* @property {integer} bottomY
+*/
+
+/**
+ * @typedef {Object NoteCentsFreqLabelSizeCache}
+ * @property {number} noteHeight
+ * @property {number} centsHeight
+ * @property {number} freqHeight
  */
 
- /**
-  * @typedef {Object NoteCentsFreqLabelSizeCache}
-  * @property {number} noteHeight
-  * @property {number} centsHeight
-  * @property {number} freqHeight
-  */
-
 export class NoteCentsFreqLabel {
+
     /**
      * @param {string} groupClassName
      * @param {FontSizeCache} freqFontWidthCache
@@ -254,15 +226,12 @@ export class NoteCentsFreqLabel {
         this.cents.addToParentOrDOM();
         this.freq.addToParentOrDOM();
         this._centsOffset = 0;
-        // this.note.element.style.width = "50px";
-        // this.note.element.style.height = "15px";
         this.verticalLine.addToParentOrDOM();
         /** @type {NoteCentsFreqLabelSizeCache} */
         this._sizeCache = {};
     }
 
     /**
-     *
      * @param {NoteCentsFreqLabelPosition} position
      */
     position(position) {
@@ -304,7 +273,6 @@ export class NoteCentsFreqLabel {
     }
 
     /**
-     *
      * @param {NoteCentsFreqLabelData} params
      */
     change(params = {}) {
@@ -318,11 +286,11 @@ export class NoteCentsFreqLabel {
                     this.freq.height = this._freqFontWidthCache.calculateWidth(value);
                 } else if (prop == "cents") {
                     if (value.length > 2) {
-                    this._centsOffset = - this._centsFontWidthCache._widthSet.get(value.charAt(0)) - this._centsFontWidthCache._widthSet.get(value.charAt(1))
-                        + this._centsFontWidthCache._widthSet.get(value.substring(0, 2));
+                        this._centsOffset = - this._centsFontWidthCache._widthSet.get(value.charAt(0)) - this._centsFontWidthCache._widthSet.get(value.charAt(1))
+                            + this._centsFontWidthCache._widthSet.get(value.substring(0, 2));
                     } else {
                         this._centsOffset = - this._centsFontWidthCache._widthSet.get(value.charAt(0)) - this._centsFontWidthCache._widthSet.get(value.charAt(1)) / 2
-                        - this._centsFontWidthCache._widthSet.get(value.substring(0, 2));
+                            - this._centsFontWidthCache._widthSet.get(value.substring(0, 2));
                     }
                 }
             }
@@ -337,8 +305,6 @@ class NoteFreqCentsLabelCache {
         this.cache = [];
     }
 
-
-
     /**
      * @returns {NoteCentsFreqLabel}
      */
@@ -351,13 +317,12 @@ class NoteFreqCentsLabelCache {
             return label;
         }
     }
+
     /**
-     *
      * @param {NoteCentsFreqLabel} label
      */
     ret(label) {
         label.hide();
-        // label.visible = false;
         this.cache.push(label);
     }
 }

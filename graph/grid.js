@@ -20,7 +20,6 @@ export class GraphGrid extends RectBoundElement {
             class: "grid-line key",
             style: ((gridStyle != undefined && gridStyle.gridKeyStyle != undefined) ? gridStyle.gridKeyStyle.asStyle() : "")
         }));
-
     }
 
     updateSize() {

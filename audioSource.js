@@ -4,6 +4,7 @@ import { relativeTo } from "./utils.js";
 const audioWorklet = './bufferedAudioSource.js';
 
 export class AudioDataConsumer {
+
     /**
      * @param {Float32Array} data
      */
@@ -12,6 +13,7 @@ export class AudioDataConsumer {
 }
 
 export class UserAudioDataSource {
+
     /**
      * @param {number} sampleSize - Needs to be a power of 2.
      * @param {boolean} userAudioWorklets
@@ -126,6 +128,7 @@ export class UserAudioDataSource {
         this._processor.disconnect();
     }
 }
+
 UserAudioDataSource.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 export class OverlappingDataSource extends AudioDataConsumer {
@@ -146,8 +149,8 @@ export class OverlappingDataSource extends AudioDataConsumer {
         this._outputBuffer.fill(0);
         this._output = new Float32Array(outputSampleSize);
     }
+
     /**
-     *
      * @param {Float32Array} data
      */
     accept(data) {

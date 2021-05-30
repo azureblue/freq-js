@@ -1,6 +1,7 @@
 import { Transform } from "./transform.js";
 
 export class Pipeline extends Transform {
+
     /**
      * @param {Array<Transform>} initialPipeline
      */

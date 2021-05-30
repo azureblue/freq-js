@@ -1,7 +1,7 @@
 import { DOMElementOwner } from "./base.js";
 import { CONFIG } from "./config.js";
-//<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" integrity="sha512-GZ1RIgZaSc8rnco/8CXfRdCpDxRCphenIiZ2ztLy3XQfCbQUSCuk8IudvNHxkRA3oUg6q0qejgN/qqyG1duv5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-export function showConfigEditor(after = () => { }) {
+
+export function showConfigEditor() {
     const cssLink = document.createElement("link");
     cssLink.rel = "stylesheet"
     cssLink.href = "css/config.css";
@@ -19,11 +19,6 @@ export function showConfigEditor(after = () => { }) {
         editor.setOptions({
             fontSize: "17pt"
         });
-
-        // document.querySelector("#start-button").addEventListener("click", () => {
-        //     document.querySelector("#start-overlay").remove();
-        //     startCallback();
-        // });
 
     }
     document.head.appendChild(cssLink);

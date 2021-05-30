@@ -1,3 +1,4 @@
+import { CONFIG } from "./config.js";
 import { toggleFullScreen } from "./utils.js";
 
 export function startWithOverlay(startCallback = () => { }, text = "START") {
@@ -13,9 +14,10 @@ export function startWithOverlay(startCallback = () => { }, text = "START") {
     document.body.appendChild(overlay);
 
     document.querySelector("#start-button").addEventListener("click", () => {
-        // toggleFullScreen();
+        if (CONFIG.getOrDefault("ui.fullscreen", () => false).asBool())
+            toggleFullScreen();
+
         document.querySelector("#start-overlay").remove();
         startCallback();
     });
-
 }

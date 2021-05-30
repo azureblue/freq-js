@@ -1,4 +1,4 @@
-import { AudioDataConsumer, OverlappingDataSource, UserAudioDataSource} from "./audioSource.js"
+import { OverlappingDataSource, UserAudioDataSource} from "./audioSource.js"
 import { Transform } from "./transform.js"
 import { AverageBuffer, MovingAverage } from "./average.js";
 import { FFT } from "./fft.js";
@@ -10,11 +10,10 @@ import { BuffersAverage } from "./buffersAverage.js";
 import { GaussianWindow } from "./window.js";
 import { Pipeline } from "./pipeline.js";
 import { LogMagnitude } from "./logMagnitude.js";
-import { AxisTicksGenerator, LinearScale, LogarithmicScale, AxisTicks, NoteIndicator } from "./graph/graph.js";
+import { AxisTicksGenerator, LinearScale, NoteIndicator } from "./graph/graph.js";
 import { AnalyserGraph } from "./graph/analyserGraph.js";
 import { startWithOverlay } from "./startOverlay.js";
 import { createGetParamsMap, injectCSS } from "./utils.js";
-import { DOMElementOwner, PositionableElement } from "./base.js";
 import { NoteCentsFreqLabelManager, NoteCentsFreqLabelStyle } from "./graph/labels.js";
 import { CONFIG } from "./config.js";
 

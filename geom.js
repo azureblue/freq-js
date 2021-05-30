@@ -1,4 +1,5 @@
 export class Rect {
+
     /**
      * @param {number} x
      * @param {number} y

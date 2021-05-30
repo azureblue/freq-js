@@ -25,7 +25,6 @@ export class Label extends PositionableElement {
         this.style.font = labelStyle.textStyle.fontString();
         this.style.color = labelStyle.textStyle.color;
         labelStyle.spacing.applyToElement(this.element);
-
     }
 
     set text(text) {
@@ -42,7 +41,6 @@ export class Label extends PositionableElement {
         const computedStyle = window.getComputedStyle(this.element);
         Label._measureTextCtx.font = computedStyle.font;
         Label._measureTextCtx.fillStyle = computedStyle.color;
-        // this.style.height = metrics.height + "px";
         this.style.lineHeight = metrics.height + "px";
     }
 }
@@ -114,7 +112,7 @@ export class Graph extends RectContainer {
         super();
         this.svgGrid = new GraphGrid(style.gridStyle);
         this.svgGrid.addToParentOrDOM(this.element);
-        this.canvas = new CanvasLayeredElement(2);
+        this.canvas = new CanvasElement();
         this.canvas.rounding = true;
         this.canvas.addToParentOrDOM(this.element);
 
@@ -130,13 +128,6 @@ export class Graph extends RectContainer {
         /**@type {Array<GraphLabel>} */
         this._ylabels = [];
         //this.updateSize();
-    }
-
-    _createLabel(text) {
-        const label = new Label(text, this._style.labelStyle);
-        // label.style.font = this._style.textStyle.font;
-        // label.style.color = this._style.textStyle.style;
-        return label;
     }
 
     updateSize() {
@@ -162,14 +153,14 @@ export class Graph extends RectContainer {
         this._ylabels = [];
 
         this._xticks.labels.forEach(labelText => {
-            const label = this._createLabel(labelText);
+            const label = new Label(labelText, this._style.labelStyle);
             label.visible = false;
             label.addToParentOrDOM(this.element);
             this._xlabels.push(label);
         });
 
         this._yticks.labels.forEach(labelText => {
-            const label = this._createLabel(labelText);
+            const label = new Label(labelText, this._style.labelStyle);
             label.visible = false;
             label.addToParentOrDOM(this.element);
             this._ylabels.push(label);
@@ -207,7 +198,7 @@ export class Graph extends RectContainer {
 
         this.svgGrid.updateSize();
 
-        const ctx = this.canvas.layers[0].ctx;
+        const ctx = this.canvas.ctx;
 
         gridKeyPath.push(`M 0 0`);
         gridKeyPath.push(`L 0 ${this._graphRect.height}`);
@@ -223,17 +214,10 @@ export class Graph extends RectContainer {
             if (yKeyTicks.has(v)) {
                 gridKeyPath.push(`M 0 ${y}`);
                 gridKeyPath.push(`L ${this._graphRect.width} ${y}`);
-                // this._style.gridKeyStyle.apply(ctx);
             } else {
                 gridPath.push(`M 0 ${y}`);
                 gridPath.push(`L ${this._graphRect.width} ${y}`);
-                // this._style.gridStyle.apply(ctx);
             }
-            // gridPath += "M 0 " + y + " ";
-            // ctx.moveTo(0, y);
-            // gridPath += "L " + this._graphRect.width + " " + y + " ";
-            // ctx.lineTo(this._graphRect.width, y);
-            // ctx.stroke();
         });
 
         this._xticks.values.forEach((v) => {
@@ -242,7 +226,6 @@ export class Graph extends RectContainer {
             ctx.beginPath();
             let x = this.xpos(v);
             if (xKeyTicks.has(v)) {
-                // this._style.gridKeyStyle.apply(ctx);
                 gridKeyPath.push(`M ${x} 0`);
                 gridKeyPath.push(`L ${x} ${this._graphRect.height}`);
             } else {
@@ -260,15 +243,8 @@ export class Graph extends RectContainer {
             const label = this._ylabels[idx];
             let labWidth = label.width;
             let y = this.ypos(v);
-            // if (yKeyTicks.has(v)) {
-            //     this._style.gridKeyStyle.apply(ctx);
-            // } else {
-            //     this._style.gridStyle.apply(ctx);
-            // }
             label.position(-labWidth + this._graphRect.x1, this._graphRect.y1 + y - labelHeight / 2);
             label.visible = true;
-            // ctx.fillText(label, -labWidth - this._style.tickLabelsMargin, y + textHeight / 2);
-            // ctx.stroke();
         });
 
         /** @type {Array<GraphLabel>} */
@@ -296,10 +272,8 @@ export class Graph extends RectContainer {
         })
 
         sortedXTicks.forEach((tick) => {
-
             const x = this.xpos(tick.value);
             const lw = tick.label.width;
-
 
             tick.label.position(x - lw / 2 + this._graphRect.x1,
                 this._graphRect.y2);
@@ -325,14 +299,6 @@ export class Graph extends RectContainer {
     ypos(yv) {
         return (this._graphRect.height - this._yscale.normalize(yv) * this._graphRect.height);
     }
-
-    // xposPixels(xv) {
-    //     return Math.round(this._xscale.normalize(xv) * this._graphRect.width * window.devicePixelRatio);
-    // }
-
-    // yposPixels(yv) {
-    //     return Math.round(this._graphRect.height * window.devicePixelRatio - this._yscale.normalize(yv) * this._graphRect.height * window.devicePixelRatio);
-    // }
 }
 
 /** *
@@ -369,7 +335,6 @@ Graph.loadStyle = function () {
     }
 }
 
-
 export class GraphScale {
     constructor(min, max) {
         this.min = min;
@@ -377,10 +342,8 @@ export class GraphScale {
     }
 
     normalize(value) {
-
     }
 }
-
 
 export class AxisTicks {
     /**
@@ -416,7 +379,6 @@ export const AxisTicksGenerator = {
         value < 1000 ? "" + value : "" + (value / 1000).toFixed(1) + "k",
 
     /**
-     *
      * @param {number} from
      * @param {number} to
      * @param {number} interval
@@ -430,7 +392,6 @@ export const AxisTicksGenerator = {
     },
 
     /**
-     *
      * @param {number} from
      * @param {number} to
      * @param {number} interval
@@ -457,7 +418,6 @@ export const AxisTicksGenerator = {
         const keyValues = [1, 10, 100, 1000, 10000, 100000]
         return new AxisTicks(values, values.map(valueToLabelMapping), keyValues);
     }
-
 };
 
 export class LinearScale extends GraphScale {

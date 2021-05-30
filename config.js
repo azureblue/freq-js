@@ -13,7 +13,6 @@ export class MissingConfig {
         return "missing config: " + this._path;
     }
 }
-const whitespaceRegex = /\s/g;
 const linkRegex = /@\S+/g;
 const calcRegex = /^[0-9.+-/*()\s]+$/g;
 
@@ -221,7 +220,6 @@ export const CONFIG = {
         const res = currentConfig.get(path);
         if (res == null)
             throw "missing path: " + path;
-        // console.log(path + " = " + res);
         return new ConfigValue(res);
     },
 
