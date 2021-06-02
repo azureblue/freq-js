@@ -86,8 +86,10 @@ export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
     const peekInterpolator = new QuadraticPeekInterpolator();
     const notes = [];
     Note.A4Freq = CONFIG.getOrDefault("music.a4", () => 440).asNumber();
-    for (let note = Note.parse('C1'), limit = Note.parse('C8'); note.midiNumber <= limit.midiNumber; note = note.add(1))
-        notes.push(note);
+    const preferSharps = CONFIG.getOrDefault("music.preferSharps", () => true).asBool();
+    for (let note = Note.parse('C1'), limit = Note.parse('C8'); note.midiNumber <= limit.midiNumber; note = note.add(1)) {
+        notes.push(new Note(note.octave, note.halftones, preferSharps));
+    }
 
     let peekHeight = CONFIG.get("analyser.peeks.minHeight").asNumber();
     let plotNoiseFloor = CONFIG.get("graph.plotNoiseFloor").asBool();
@@ -144,9 +146,10 @@ export function Analyser(sampleSize, sampleRate, frequencyRange, logFFTGraph) {
             let centInterval = Math.round(Note.intervalInCents(note.frequency(), peekFreq.toFixed(1)));
             if (centInterval >= 100)
                 return;
-
+            let noteName = note.name;
+            noteName = noteName[0].toUpperCase() + noteName.substring(1);
             labels.addLabel(peekFreq, {
-                note: note._name.toLowerCase() + note.octave,
+                note: noteName,
                 cents: (centInterval < 0 ? "" : "+") + centInterval,
                 freq: peekFreq.toFixed(1)
             });
