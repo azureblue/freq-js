@@ -19,7 +19,7 @@ export class AnalyserGraph extends Graph {
          * @param {Float32Array} ys - Y coordinates
          * @param {AnalyserGraph.LineStyle} lineStyle
          */
-        this.plotData = function (xs, ys, stride = 1, lineStyle = AnalyserGraph.defaultStyle.plotStyle) {
+        this.plotData = function (xs, ys, stride = 1, lineStyle = style.plotStyle) {
             const ctx = this.canvas.ctx;
             ctx.save();
             ctx.translate(0.5, 0.5);

@@ -309,7 +309,7 @@ export class Graph extends RectContainer {
  */
 
 Graph.defaultStyle = {
-    labelStyle: new LabelStyle(new TextStyle('1.2rem Oswald', "rgb(40, 40, 40)"), new Spacing(10)),
+    labelStyle: new LabelStyle(new TextStyle('Oswald', "1.2rem", "rgb(40, 40, 40)"), new Spacing(10)),
     gridStyle: new GridStyle(new LineStyle(2, 'rgb(200, 200, 200)'), new LineStyle(2, 'rgb(150, 150, 150)')),
     margin: 2
 };
@@ -450,22 +450,22 @@ export class NoteIndicator extends CanvasElement {
 
     drawNote(note, centDiff) {
         const ctx = this.ctx;
-        this.updateSizeAndClean();
+        this.clear();
         let noteName = note.name.toUpperCase(), goalFrequency = note.frequency();
         goalFrequency = "" + goalFrequency.toFixed(2) + " Hz";
         let centDiffLabel = "" + centDiff.toFixed(2) + " cents";
 
         ctx.save();
-        ctx.font = '20px sans-serif';
+        ctx.font = '25px Oswald';
         ctx.tick = 1;
         ctx.strokeStyle = 'rgb(200, 200, 200)';
         ctx.fillStyle = 'rgb(100, 100, 100)';
 
-        const textHeight = ctx.measureText("#").width + 5;
+        const textHeight = measureText(noteName, ctx).height + 2; //  ctx.measureText("#").width + 5;
         const absCentDiff = Math.abs(centDiff);
 
-        ctx.fillText(noteName, this.width / 2 - ctx.measureText(noteName).width / 2, textHeight);
-        ctx.font = '15px sans-serif';
+        ctx.fillText(noteName, this.width / 2 - ctx.measureText(noteName).width / 2, textHeight + 2);
+        ctx.font = '20px Oswald';
         ctx.fillText(goalFrequency, this.width / 2 - ctx.measureText(goalFrequency).width / 2, textHeight * 2);
         ctx.fillText(centDiffLabel, this.width / 2 - ctx.measureText(centDiffLabel).width / 2, textHeight * 3);
         ctx.fillRect(this.width / 2, textHeight * 4, centDiff / 50 * this.width / 2, this.height - textHeight * 5);

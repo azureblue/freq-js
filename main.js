@@ -17,52 +17,61 @@ import { createGetParamsMap, injectCSS } from "./utils.js";
 import { NoteCentsFreqLabelManager, NoteCentsFreqLabelStyle } from "./graph/labels.js";
 import { CONFIG } from "./config.js";
 
-CONFIG.loadConfig()
-const getParams = createGetParamsMap();
+CONFIG.loadConfig("tuner", "./config.json").then(() => {
+    const getParams = createGetParamsMap();
 
-const sampleSize = 1024 * 4;
-let audioSource = new UserAudioDataSource(sampleSize , getParams.has("useAudioWorklets"));
-const sampleRate = audioSource.sampleRate;
-let overlapper = new OverlappingDataSource(sampleRate, sampleSize , sampleSize);
+    const sampleSize = 1024 * 4;
+    let audioSource = new UserAudioDataSource(sampleSize , getParams.has("useAudioWorklets"));
+    const sampleRate = audioSource.sampleRate;
+    let overlapper = new OverlappingDataSource(sampleRate, sampleSize , sampleSize);
 
-console.debug("sample rate: " + sampleRate);
-console.debug("frame time: " + (sampleSize / sampleRate));
+    console.debug("sample rate: " + sampleRate);
+    console.debug("frame time: " + (sampleSize / sampleRate));
 
-const waveScales = [new LinearScale(0, sampleSize), new LinearScale(-1, 1)];
-// const logFftScales = [new LogarithmicScale(40, 10000), new LinearScale(-140, 0)];
-const logFftScales = [new LinearScale(40, 5000), new LinearScale(-140, 0)];
-const waveGraph = new AnalyserGraph(waveScales[0], waveScales[1],
-    AxisTicksGenerator.generateLinearTicks(0, sampleSize, 512, AxisTicksGenerator.sequence(0, sampleSize, 1024)),
-    AxisTicksGenerator.generateLinearTicks(-1, 1, 0.2, [-1, 0, 1], v => v.toFixed(1)));
-const logFFTGraph = new AnalyserGraph(logFftScales[0], logFftScales[1],
-    // AxisTicksGenerator.generateLog10ScaleTicks(40, 10000, AxisTicksGenerator.useKPrefix),
-    AxisTicksGenerator.generateLinearTicks(0, 5000, 100, [1000, 2000, 3000, 4000, 5000], AxisTicksGenerator.useKPrefix),
-    AxisTicksGenerator.generateLinearTicks(-140, 0, 20, []),
-    );
+    const waveScales = [new LinearScale(0, sampleSize), new LinearScale(-1, 1)];
+    // const logFftScales = [new LogarithmicScale(40, 10000), new LinearScale(-140, 0)];
+    const logFftScales = [new LinearScale(40, 5000), new LinearScale(-140, 0)];
+    const waveGraph = new AnalyserGraph(waveScales[0], waveScales[1],
+        AxisTicksGenerator.generateLinearTicks(0, sampleSize, 512, AxisTicksGenerator.sequence(0, sampleSize, 1024)),
+        AxisTicksGenerator.generateLinearTicks(-1, 1, 0.2, [-1, 0, 1], v => v.toFixed(1)));
+    const logFFTGraph = new AnalyserGraph(logFftScales[0], logFftScales[1],
+        // AxisTicksGenerator.generateLog10ScaleTicks(40, 10000, AxisTicksGenerator.useKPrefix),
+        AxisTicksGenerator.generateLinearTicks(0, 5000, 100, [1000, 2000, 3000, 4000, 5000], AxisTicksGenerator.useKPrefix),
+        AxisTicksGenerator.generateLinearTicks(-140, 0, 20, []),
+        );
 
-const noteIndicator = new NoteIndicator(document.getElementById('ur'));
-const analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator);
-waveGraph.addToParentOrDOM(document.getElementById("ul"));
-waveGraph.updateSize();
-logFFTGraph.addToParentOrDOM(document.getElementById("lr"));
-logFFTGraph.updateSize();
-let labelStyle = NoteCentsFreqLabelStyle.defaultStyle.clone();
-labelStyle.spacing[1] = 0;
-labelStyle.spacing[2] = 0;
-const labels = new NoteCentsFreqLabelManager(logFFTGraph, labelStyle, "analyser-label");
+    const noteIndicator = new NoteIndicator();
+    const ur = document.getElementById('ur');
+    noteIndicator.addToParentOrDOM(ur);
+    noteIndicator.width = ur.getBoundingClientRect().width;
+    noteIndicator.height = ur.getBoundingClientRect().height;
+    noteIndicator.updateSize();
 
-injectCSS(".analyser-label.note {display: none;}");
-injectCSS(".analyser-label.cents {display: none;}");
-function start() {
-    overlapper.setConsumer({accept: data => analyser.update(data)});
-    audioSource.startTest({accept: data => overlapper.accept(data)}, [70, 100, 220, 502]);
-    // audioSource.start({accept: data => analyser.update(data)});
-}
+    waveGraph.addToParentOrDOM(document.getElementById("ul"));
+    waveGraph.updateSize();
+    logFFTGraph.addToParentOrDOM(document.getElementById("lr"));
+    logFFTGraph.updateSize();
+    const analyser = new Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator);
 
-startWithOverlay(start);
+    function start() {
+        overlapper.setConsumer({accept: data => analyser.update(data)});
+        // audioSource.startTest({accept: data => overlapper.accept(data)}, [70, 100, 220, 502]);
+        audioSource.start({accept: data => analyser.update(data)});
+    }
 
+    startWithOverlay(start);
+});
 
 function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator) {
+
+    let labelStyle = NoteCentsFreqLabelStyle.defaultStyle.clone();
+    labelStyle.spacing[1] = 0;
+    labelStyle.spacing[2] = 0;
+    const labels = new NoteCentsFreqLabelManager(logFFTGraph, labelStyle, "analyser-label");
+
+    injectCSS(".analyser-label.note {display: none;}");
+    injectCSS(".analyser-label.cents {display: none;}");
+
     const fftData = new Float32Array(sampleSize);
     const noiseFloor = new Float32Array(sampleSize / 2);
     const logMag = new Float32Array(sampleSize / 2);
@@ -131,13 +140,6 @@ function Analyser(sampleSize, sampleRate, waveGraph, logFFTGraph, noteIndicator)
             peeks.push(peekFreq);
         });
 
-        for (let i = 80; i < 5000; i += 105.129)  {
-            labels.addLabel(i, {
-                note: "#",
-                cents: "#",
-                freq: i.toFixed(1)
-            });
-        }
         let res = noteFinder.findBestNote(peeks, notes);
         if (!res)
             res = lastFoundNoteRes;
